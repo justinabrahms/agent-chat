@@ -5,6 +5,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"html"
 	"html/template"
 	"log"
 	"net/http"
@@ -33,13 +34,9 @@ func linkifyURLs(s string) string {
 }
 
 // linkifyIssueRefs replaces GitHub-style issue references with links.
-// For now, links to a generic GitHub search since we don't know the repo context.
 func linkifyIssueRefs(s string) string {
 	return issueRefRegex.ReplaceAllStringFunc(s, func(ref string) string {
-		// Extract the number from #123
 		num := ref[1:] // Remove the # prefix
-		// Link to GitHub - user will need to know the repo context
-		// Using a data attribute so frontend could enhance this later
 		return fmt.Sprintf(`<a href="https://github.com/search?q=%s&type=issues" target="_blank" rel="noopener noreferrer" class="issue-ref" data-issue="%s">%s</a>`, num, num, ref)
 	})
 }
@@ -87,6 +84,52 @@ func groupMessages(msgs []message.Message) []GroupedMessage {
 	return grouped
 }
 
+// codeBlockRegex matches fenced code blocks with optional language hint
+var codeBlockRegex = regexp.MustCompile("(?s)```(\\w*)\\n?(.*?)```")
+
+// renderMarkdown converts markdown-ish text to HTML with code block support
+func renderMarkdown(s string) string {
+	// First, extract and replace code blocks with placeholders
+	var codeBlocks []string
+	placeholder := "\x00CODE_BLOCK_%d\x00"
+
+	s = codeBlockRegex.ReplaceAllStringFunc(s, func(match string) string {
+		parts := codeBlockRegex.FindStringSubmatch(match)
+		lang := parts[1]
+		code := parts[2]
+
+		// Trim trailing newline from code
+		code = strings.TrimSuffix(code, "\n")
+
+		// Escape HTML in code
+		code = html.EscapeString(code)
+
+		var block string
+		if lang != "" {
+			block = fmt.Sprintf("<pre><code class=\"language-%s\">%s</code></pre>", lang, code)
+		} else {
+			block = fmt.Sprintf("<pre><code>%s</code></pre>", code)
+		}
+
+		idx := len(codeBlocks)
+		codeBlocks = append(codeBlocks, block)
+		return fmt.Sprintf(placeholder, idx)
+	})
+
+	// Process inline markdown (simple: just remove **)
+	s = strings.ReplaceAll(s, "**", "")
+
+	// Convert newlines to <br>
+	s = strings.ReplaceAll(s, "\n", "<br>")
+
+	// Restore code blocks
+	for i, block := range codeBlocks {
+		s = strings.Replace(s, fmt.Sprintf(placeholder, i), block, 1)
+	}
+
+	return s
+}
+
 // Server handles HTTP requests for the chat UI.
 type Server struct {
 	aggregator *message.Aggregator
@@ -117,17 +160,7 @@ func New(agg *message.Aggregator) (*Server, error) {
 			}
 		},
 		"markdown": func(s string) template.HTML {
-			// Simple markdown-ish rendering
-			s = strings.ReplaceAll(s, "**", "")
-
-			// Linkify URLs (do this before HTML escaping to avoid double-processing)
-			s = linkifyURLs(s)
-
-			// Linkify GitHub-style issue/PR references (#123)
-			s = linkifyIssueRefs(s)
-
-			s = strings.ReplaceAll(s, "\n", "<br>")
-			return template.HTML(s)
+			return template.HTML(renderMarkdown(s))
 		},
 	}
 

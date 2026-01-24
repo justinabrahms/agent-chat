@@ -6,6 +6,16 @@
     <title>Agent Chat</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/sse.js"></script>
+    <!-- Highlight.js for syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/tomorrow-night.min.css" id="hljs-dark">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/tomorrow.min.css" id="hljs-light" disabled>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Language support: Go, Python, JavaScript, TypeScript, Bash, JSON, YAML -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
     <link rel="stylesheet" href="/static/style.css">
     <script>
         // Apply saved theme immediately to prevent flash
@@ -106,60 +116,32 @@
     </div>
 
     <script>
-        // Relative timestamp formatting
-        function formatRelativeTime(timestamp) {
-            var now = Date.now();
-            var diff = now - timestamp;
-            var seconds = Math.floor(diff / 1000);
-            var minutes = Math.floor(seconds / 60);
-            var hours = Math.floor(minutes / 60);
-            var days = Math.floor(hours / 24);
+        // Theme-aware highlight.js stylesheet switching
+        function updateHljsTheme(theme) {
+            var darkSheet = document.getElementById('hljs-dark');
+            var lightSheet = document.getElementById('hljs-light');
 
-            if (seconds < 60) {
-                return 'just now';
-            } else if (minutes < 60) {
-                return minutes === 1 ? '1 minute ago' : minutes + ' minutes ago';
-            } else if (hours < 24) {
-                return hours === 1 ? '1 hour ago' : hours + ' hours ago';
-            } else if (days === 1) {
-                return 'yesterday';
-            } else if (days < 7) {
-                var date = new Date(timestamp);
-                var dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                return dayNames[date.getDay()];
+            if (theme === 'light') {
+                darkSheet.disabled = true;
+                lightSheet.disabled = false;
+            } else if (theme === 'dark') {
+                darkSheet.disabled = false;
+                lightSheet.disabled = true;
             } else {
-                var date = new Date(timestamp);
-                var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                return monthNames[date.getMonth()] + ' ' + date.getDate();
+                // System theme - check preference
+                var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                darkSheet.disabled = !prefersDark;
+                lightSheet.disabled = prefersDark;
             }
         }
 
-        function formatAbsoluteTime(timestamp) {
-            var date = new Date(timestamp);
-            var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            var hours = date.getHours();
-            var minutes = date.getMinutes();
-            var ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12;
-            hours = hours ? hours : 12;
-            var minutesStr = minutes < 10 ? '0' + minutes : minutes;
-            return monthNames[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear() + ', ' + hours + ':' + minutesStr + ' ' + ampm;
-        }
-
-        function updateTimestamp(msgEl) {
-            var timestamp = parseInt(msgEl.dataset.timestamp, 10);
-            if (!timestamp) return;
-
-            var timeEl = msgEl.querySelector('.message-time, .message-time-hover');
-            if (timeEl) {
-                timeEl.textContent = formatRelativeTime(timestamp);
-                timeEl.title = formatAbsoluteTime(timestamp);
+        // Listen for system theme changes when in system mode
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+            var currentTheme = document.documentElement.getAttribute('data-theme') || 'system';
+            if (currentTheme === 'system') {
+                updateHljsTheme('system');
             }
-        }
-
-        function updateAllTimestamps() {
-            document.querySelectorAll('.message[data-timestamp]').forEach(updateTimestamp);
-        }
+        });
 
         // Theme management
         (function() {
@@ -173,6 +155,7 @@
                 localStorage.setItem(THEME_KEY, theme);
                 document.documentElement.setAttribute('data-theme', theme);
                 updateToggleButtons(theme);
+                updateHljsTheme(theme);
             }
 
             function updateToggleButtons(theme) {
@@ -194,11 +177,12 @@
 
             // Set initial active state
             updateToggleButtons(getTheme());
+            // Set initial hljs theme
+            updateHljsTheme(getTheme());
         })();
 
         // Unread tracking using localStorage
         var STORAGE_KEY = 'agent-chat-read-times';
-        var BASE_TITLE = 'Agent Chat';
 
         function getReadTimes() {
             try {
@@ -214,19 +198,6 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(times));
         }
 
-        function getUnreadCount() {
-            return document.querySelectorAll('.workspace-item.has-unread').length;
-        }
-
-        function updateTabTitle() {
-            var count = getUnreadCount();
-            if (count > 0) {
-                document.title = '(' + count + ') ' + BASE_TITLE;
-            } else {
-                document.title = BASE_TITLE;
-            }
-        }
-
         function updateUnreadIndicators() {
             var readTimes = getReadTimes();
             document.querySelectorAll('.workspace-item').forEach(function(el) {
@@ -240,7 +211,6 @@
                     el.classList.remove('has-unread');
                 }
             });
-            updateTabTitle();
         }
 
         function markWorkspaceAsRead(workspace) {
@@ -249,7 +219,6 @@
                 var latestTime = parseInt(el.dataset.latestTime, 10) || Date.now();
                 setReadTime(workspace, latestTime);
                 el.classList.remove('has-unread');
-                updateTabTitle();
             }
         }
 
@@ -266,9 +235,6 @@
 
         // Handle new messages for unread indicators (via MutationObserver)
         function handleNewMessage(msgEl) {
-            // Update relative timestamp for new message
-            updateTimestamp(msgEl);
-
             const workspace = msgEl.dataset.workspace;
             const msgTime = parseInt(msgEl.dataset.timestamp, 10) || 0;
 
@@ -284,12 +250,7 @@
 
                 // If not the active workspace, show unread
                 if (!wsEl.classList.contains('active')) {
-                    var wasUnread = wsEl.classList.contains('has-unread');
                     wsEl.classList.add('has-unread');
-                    // Update tab title if this workspace just became unread
-                    if (!wasUnread) {
-                        updateTabTitle();
-                    }
                 }
             }
         }
@@ -392,19 +353,12 @@
             filterMessages(this.value);
         });
 
-        // Re-apply search filter and update timestamps when messages are loaded via HTMX
+        // Re-apply search filter when messages are loaded via HTMX
         document.body.addEventListener('htmx:afterSwap', function(e) {
             if (e.detail.target.id === 'message-panel') {
                 filterMessages(searchInput.value);
-                updateAllTimestamps();
             }
         });
-
-        // Initialize timestamps on page load
-        updateAllTimestamps();
-
-        // Update timestamps every 30 seconds
-        setInterval(updateAllTimestamps, 30000);
 
         // Keyboard navigation
         (function() {
@@ -512,6 +466,40 @@
                 }
             });
             msgObserver.observe(msgPanel, { childList: true, subtree: true });
+        })();
+
+        // Syntax highlighting
+        (function() {
+            // Apply highlighting to all code blocks in an element
+            function highlightCodeBlocks(container) {
+                container.querySelectorAll('pre code').forEach(function(block) {
+                    if (!block.dataset.highlighted) {
+                        hljs.highlightElement(block);
+                    }
+                });
+            }
+
+            // Initial highlighting for existing messages
+            highlightCodeBlocks(document);
+
+            // Watch for new messages and highlight their code blocks
+            var codeObserver = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1) {
+                            highlightCodeBlocks(node);
+                        }
+                    });
+                });
+            });
+            codeObserver.observe(document.getElementById('message-panel'), { childList: true, subtree: true });
+
+            // Re-highlight after HTMX swaps
+            document.body.addEventListener('htmx:afterSwap', function(e) {
+                if (e.detail.target.id === 'message-panel') {
+                    highlightCodeBlocks(e.detail.target);
+                }
+            });
         })();
     </script>
 </body>
