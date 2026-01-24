@@ -16,12 +16,12 @@ import (
 
 // GasTownSource reads messages from the Gas Town beads SQLite database.
 type GasTownSource struct {
-	beadsDir    string
-	dbPath      string
-	mu          sync.RWMutex
-	lastSeenID  string
-	lastSeenAt  time.Time
-	workspaces  map[string]bool
+	beadsDir   string
+	dbPath     string
+	mu         sync.RWMutex
+	lastSeenID string
+	lastSeenAt time.Time
+	workspaces map[string]bool
 }
 
 // NewGasTownSource creates a new Gas Town message source.
