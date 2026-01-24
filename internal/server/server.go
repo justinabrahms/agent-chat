@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -15,6 +16,33 @@ import (
 
 	"github.com/justinabrahms/agent-chat/internal/message"
 )
+
+// Regular expressions for link detection
+var (
+	// Match URLs starting with http:// or https://
+	urlRegex = regexp.MustCompile(`https?://[^\s<>"'` + "`" + `]+[^\s<>"'` + "`" + `.,;:!?)}\]]+`)
+	// Match GitHub-style issue/PR references like #123
+	issueRefRegex = regexp.MustCompile(`#(\d+)\b`)
+)
+
+// linkifyURLs replaces URLs with clickable links.
+func linkifyURLs(s string) string {
+	return urlRegex.ReplaceAllStringFunc(s, func(url string) string {
+		return fmt.Sprintf(`<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>`, url, template.HTMLEscapeString(url))
+	})
+}
+
+// linkifyIssueRefs replaces GitHub-style issue references with links.
+// For now, links to a generic GitHub search since we don't know the repo context.
+func linkifyIssueRefs(s string) string {
+	return issueRefRegex.ReplaceAllStringFunc(s, func(ref string) string {
+		// Extract the number from #123
+		num := ref[1:] // Remove the # prefix
+		// Link to GitHub - user will need to know the repo context
+		// Using a data attribute so frontend could enhance this later
+		return fmt.Sprintf(`<a href="https://github.com/search?q=%s&type=issues" target="_blank" rel="noopener noreferrer" class="issue-ref" data-issue="%s">%s</a>`, num, num, ref)
+	})
+}
 
 //go:embed templates/*.html
 var templatesFS embed.FS
@@ -91,6 +119,13 @@ func New(agg *message.Aggregator) (*Server, error) {
 		"markdown": func(s string) template.HTML {
 			// Simple markdown-ish rendering
 			s = strings.ReplaceAll(s, "**", "")
+
+			// Linkify URLs (do this before HTML escaping to avoid double-processing)
+			s = linkifyURLs(s)
+
+			// Linkify GitHub-style issue/PR references (#123)
+			s = linkifyIssueRefs(s)
+
 			s = strings.ReplaceAll(s, "\n", "<br>")
 			return template.HTML(s)
 		},
