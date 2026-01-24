@@ -1,10 +1,10 @@
 {{define "messages.html"}}
 <div class="messages-container">
     {{range .Messages}}
-    <div class="message{{if .IsGroupStart}} group-start{{end}}{{if .IsGroupEnd}} group-end{{end}}{{if not .IsGroupStart}} continuation{{end}}" data-source="{{.Source}}" data-workspace="{{.Workspace}}" data-from="{{.From}}" data-to="{{.To}}" data-body="{{.Body}}" data-timestamp="{{.Timestamp.UnixMilli}}">
+    <div class="message {{senderColorClass .From}}{{if .IsGroupStart}} group-start{{end}}{{if .IsGroupEnd}} group-end{{end}}{{if not .IsGroupStart}} continuation{{end}}" data-source="{{.Source}}" data-workspace="{{.Workspace}}" data-from="{{.From}}" data-to="{{.To}}" data-body="{{.Body}}" data-timestamp="{{.Timestamp.UnixMilli}}">
         {{if .IsGroupStart}}
         <div class="message-header">
-            <span class="message-source">{{sourceIcon .Source}}</span>
+            {{avatar .From}}
             <span class="message-from">{{.From}}</span>
             {{if .To}}<span class="message-arrow">→</span><span class="message-to">{{.To}}</span>{{end}}
             <span class="message-time" title="{{.Timestamp}}">{{formatTime .Timestamp}}</span>
