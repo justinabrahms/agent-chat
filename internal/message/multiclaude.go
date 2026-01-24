@@ -165,20 +165,23 @@ func (m *MulticlaudeSource) Watch(ctx context.Context) (<-chan Message, error) {
 		return nil, err
 	}
 
+	// watchDirRecursive adds a directory and all its subdirectories to the watcher.
+	// It's safe to call on directories already being watched (fsnotify ignores duplicates).
+	watchDirRecursive := func(root string) {
+		_ = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return nil
+			}
+			if info.IsDir() {
+				_ = watcher.Add(path)
+			}
+			return nil
+		})
+	}
+
 	// Watch the messages directory recursively
 	messagesDir := m.messagesDir()
-	if err := filepath.Walk(messagesDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-		if info.IsDir() {
-			return watcher.Add(path)
-		}
-		return nil
-	}); err != nil {
-		watcher.Close()
-		return nil, err
-	}
+	watchDirRecursive(messagesDir)
 
 	// Initialize seen files
 	_, _ = m.List("")
@@ -238,7 +241,12 @@ func (m *MulticlaudeSource) Watch(ctx context.Context) (<-chan Message, error) {
 
 		rescan := func() {
 			_ = filepath.Walk(m.messagesDir(), func(path string, info os.FileInfo, err error) error {
-				if err != nil || info.IsDir() {
+				if err != nil {
+					return nil
+				}
+				if info.IsDir() {
+					// Add any new directories to the watcher (fsnotify ignores duplicates)
+					_ = watcher.Add(path)
 					return nil
 				}
 				checkFile(path)
@@ -255,9 +263,10 @@ func (m *MulticlaudeSource) Watch(ctx context.Context) (<-chan Message, error) {
 					return
 				}
 				if event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
-					// If it's a directory, add it to the watch
+					// If it's a directory, recursively add it and any subdirectories to the watch.
+					// This handles cases where nested directories are created simultaneously.
 					if info, err := os.Stat(event.Name); err == nil && info.IsDir() {
-						_ = watcher.Add(event.Name) // Best effort watch
+						watchDirRecursive(event.Name)
 					} else {
 						checkFile(event.Name)
 					}
