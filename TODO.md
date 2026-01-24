@@ -9,18 +9,18 @@ A roadmap for making this project delightful to use and a healthy open source pr
 ## User Experience
 
 ### Search & Navigation
-- [ ] Full-text search across all messages
-- [ ] Search within current workspace
-- [ ] Keyboard shortcuts (j/k navigation, / for search, g+w for workspace list)
+- [x] Full-text search across all messages (PR #10)
+- [x] Search within current workspace (PR #10)
+- [x] Keyboard shortcuts (j/k navigation, / for search, g+w for workspace list) (PR #7)
 - [ ] Jump to date picker
 - [ ] "Jump to unread" button when scrolled up
 
 ### Message Display
 - [ ] Collapsible long messages with "Show more"
-- [ ] Syntax highlighting for code blocks in messages
-- [ ] Linkify URLs, PR numbers, issue references
-- [ ] Relative timestamps ("2 minutes ago") with hover for absolute
-- [ ] Message grouping by sender (consecutive messages collapse headers)
+- [x] Syntax highlighting for code blocks in messages (PR #17)
+- [x] Linkify URLs, PR numbers, issue references (PR #16)
+- [x] Relative timestamps ("2 minutes ago") with hover for absolute (PR #18)
+- [x] Message grouping by sender (consecutive messages collapse headers) (PR #9)
 - [ ] Thread view for related messages (reply chains)
 
 ### Filtering & Organization
@@ -34,13 +34,13 @@ A roadmap for making this project delightful to use and a healthy open source pr
 ### Notifications & Awareness
 - [ ] Desktop notifications for new messages (opt-in)
 - [ ] Sound alerts (configurable, off by default)
-- [ ] Unread count in browser tab title
+- [x] Unread count in browser tab title (PR #15)
 - [ ] "New messages below" indicator when scrolled up
 - [ ] Activity indicator showing which workspaces are "hot"
 
 ### Visual Polish
-- [ ] Light theme option
-- [ ] System theme auto-detection
+- [x] Light theme option (PR #12)
+- [x] System theme auto-detection (PR #12)
 - [ ] Customizable accent colors
 - [ ] Compact vs comfortable message density toggle
 - [ ] Smooth scroll animations
@@ -74,20 +74,20 @@ A roadmap for making this project delightful to use and a healthy open source pr
 ## Developer Experience
 
 ### Build & Distribution
-- [ ] Makefile with standard targets (build, test, install, clean)
-- [ ] Cross-platform builds (Linux, macOS, Windows)
+- [x] Makefile with standard targets (build, test, install, clean) (PR #5)
+- [x] Cross-platform builds (Linux, macOS) (PR #5)
 - [ ] Homebrew formula
 - [ ] Docker image
 - [ ] Pre-built binaries on GitHub Releases
-- [ ] Version command (`agent-chat --version`)
-- [ ] Single-binary with embedded assets (already done, but verify)
+- [x] Version command (`agent-chat --version`) (added)
+- [x] Single-binary with embedded assets (verified)
 
 ### Configuration
-- [ ] Config file support (~/.config/agent-chat/config.yaml)
+- [x] Config file support (~/.config/agent-chat/config.yaml) (PR #11)
 - [ ] Environment variable documentation
 - [ ] Example config file with all options commented
-- [ ] Config validation on startup with helpful errors
-- [ ] `--config` flag to specify alternate config path
+- [x] Config validation on startup with helpful errors (PR #11)
+- [x] `--config` flag to specify alternate config path (PR #11)
 
 ### Observability
 - [ ] Structured logging with levels (--verbose, --debug)
@@ -107,7 +107,7 @@ A roadmap for making this project delightful to use and a healthy open source pr
 - [ ] FAQ
 
 ### For Contributors
-- [ ] CONTRIBUTING.md with development setup
+- [x] CONTRIBUTING.md with development setup (PR #4)
 - [ ] Architecture overview document
 - [ ] Code style guide (or adopt Go standard)
 - [ ] How to add a new message source
@@ -115,12 +115,12 @@ A roadmap for making this project delightful to use and a healthy open source pr
 - [ ] Release process documentation
 
 ### Project Health
-- [ ] LICENSE file (pick a license)
+- [x] LICENSE file (MIT license added)
 - [ ] CODE_OF_CONDUCT.md
 - [ ] SECURITY.md for vulnerability reporting
-- [ ] Issue templates (bug report, feature request)
-- [ ] Pull request template
-- [ ] CHANGELOG.md
+- [x] Issue templates (bug report, feature request) (PR #3)
+- [x] Pull request template (PR #3)
+- [x] CHANGELOG.md (added)
 
 ---
 
@@ -134,11 +134,11 @@ A roadmap for making this project delightful to use and a healthy open source pr
 - [ ] Test coverage reporting
 
 ### CI/CD
-- [ ] GitHub Actions workflow for tests
-- [ ] Linting (golangci-lint)
-- [ ] Build verification on PRs
+- [x] GitHub Actions workflow for tests (PR #1)
+- [x] Linting (golangci-lint) (PR #1)
+- [x] Build verification on PRs (PR #1)
 - [ ] Automated releases on tag push
-- [ ] Dependabot for dependency updates
+- [x] Dependabot for dependency updates (PR #2)
 
 ### Code Quality
 - [ ] Go module documentation (godoc comments)
@@ -150,11 +150,11 @@ A roadmap for making this project delightful to use and a healthy open source pr
 
 ## Accessibility
 
-- [ ] Keyboard-only navigation
+- [x] Keyboard-only navigation (PR #7)
 - [ ] Screen reader support (ARIA labels)
 - [ ] High contrast mode
 - [ ] Reduced motion option
-- [ ] Focus indicators
+- [x] Focus indicators (PR #7)
 
 ---
 
@@ -184,20 +184,20 @@ A roadmap for making this project delightful to use and a healthy open source pr
 
 ## Priority Guide
 
-**Start here (MVP polish):**
-1. README with screenshots
-2. LICENSE file
-3. Makefile
-4. Config file support
-5. Keyboard shortcuts
+**~~Start here (MVP polish):~~ ✅ DONE**
+1. ~~README with screenshots~~ (README added)
+2. ~~LICENSE file~~ ✅
+3. ~~Makefile~~ ✅
+4. ~~Config file support~~ ✅
+5. ~~Keyboard shortcuts~~ ✅
 
-**Next (usability):**
-1. Full-text search
-2. Message grouping
-3. Light theme
-4. Desktop notifications
+**~~Next (usability):~~ ✅ MOSTLY DONE**
+1. ~~Full-text search~~ ✅
+2. ~~Message grouping~~ ✅
+3. ~~Light theme~~ ✅
+4. Desktop notifications (pending)
 
-**Then (distribution):**
-1. GitHub Actions CI
-2. Pre-built releases
-3. Homebrew formula
+**Then (distribution):** IN PROGRESS
+1. ~~GitHub Actions CI~~ ✅
+2. Pre-built releases (pending)
+3. Homebrew formula (pending)
