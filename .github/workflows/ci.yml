@@ -48,3 +48,14 @@ jobs:
 
       - name: Build
         run: go build -v ./...
+
+  spec-check:
+    name: Spec Requirement
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check spec requirement
+        run: ./scripts/check-spec-requirement.sh

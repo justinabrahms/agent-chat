@@ -2,6 +2,16 @@
 
 Instructions for AI coding assistants using OpenSpec for spec-driven development.
 
+## CI Enforced: Spec Requirement for Substantial Changes
+
+**This project enforces spec documentation via CI.** Substantial Go code changes will fail CI unless accompanied by specification documents.
+
+"Substantial" means:
+- More than 50 lines of Go code changed (additions + deletions), OR
+- More than 3 non-test Go files changed
+
+To pass the check, include changes under `openspec/changes/` or `openspec/specs/` in your PR.
+
 ## TL;DR Quick Checklist
 
 - Search existing work: `openspec spec list --long`, `openspec list` (use `rg` only for full-text search)

@@ -16,3 +16,7 @@ Use `@/openspec/AGENTS.md` to learn:
 Keep this managed block so 'openspec update' can refresh the instructions.
 
 <!-- OPENSPEC:END -->
+
+## CI Requirements
+
+**Spec Requirement:** Substantial Go code changes require specification documents. CI will fail if you change >50 lines of Go code or >3 Go files without corresponding changes in `openspec/changes/` or `openspec/specs/`. See `openspec/AGENTS.md` for details on creating proposals.
