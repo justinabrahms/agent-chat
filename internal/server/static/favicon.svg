@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <!-- Chat bubble -->
+  <path d="M4 6a2 2 0 0 1 2-2h20a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H12l-6 6v-6H6a2 2 0 0 1-2-2V6z" fill="url(#g)"/>
+  <!-- Dots representing typing/conversation -->
+  <circle cx="10" cy="13" r="2" fill="white"/>
+  <circle cx="16" cy="13" r="2" fill="white"/>
+  <circle cx="22" cy="13" r="2" fill="white"/>
+</svg>
