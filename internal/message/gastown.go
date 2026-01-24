@@ -163,7 +163,7 @@ func (g *GasTownSource) Watch(ctx context.Context) (<-chan Message, error) {
 	// Also watch WAL file if it exists
 	walPath := g.dbPath + "-wal"
 	if _, err := os.Stat(walPath); err == nil {
-		watcher.Add(walPath)
+		_ = watcher.Add(walPath) // Best effort - WAL may not always exist
 	}
 
 	// Initialize last seen
