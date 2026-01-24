@@ -62,8 +62,8 @@ func TestWatch_DetectsNewDirectories(t *testing.T) {
 		if received.ID != "test-msg-1" {
 			t.Errorf("expected message ID 'test-msg-1', got '%s'", received.ID)
 		}
-		if received.Workspace != "new-repo" {
-			t.Errorf("expected workspace 'new-repo', got '%s'", received.Workspace)
+		if received.Workspace != "mc-new-repo" {
+			t.Errorf("expected workspace 'mc-new-repo', got '%s'", received.Workspace)
 		}
 	case <-time.After(2 * time.Second):
 		t.Error("timeout waiting for message - new directory may not have been watched")

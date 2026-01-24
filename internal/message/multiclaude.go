@@ -114,8 +114,8 @@ func (m *MulticlaudeSource) List(workspace string) ([]Message, error) {
 					continue
 				}
 
-				// Workspace is the repo name
-				ws := repoName
+				// Workspace is the repo name with mc- prefix
+				ws := "mc-" + repoName
 				if workspace != "" && ws != workspace {
 					continue
 				}
@@ -214,9 +214,9 @@ func (m *MulticlaudeSource) Watch(ctx context.Context) (<-chan Message, error) {
 			// Extract workspace from path: messages/<repo>/<agent>/*.json
 			rel, _ := filepath.Rel(m.messagesDir(), path)
 			parts := strings.Split(rel, string(filepath.Separator))
-			ws := "general"
+			ws := "mc-general"
 			if len(parts) >= 1 {
-				ws = parts[0]
+				ws = "mc-" + parts[0]
 			}
 
 			m.mu.Lock()
