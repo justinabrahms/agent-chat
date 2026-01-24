@@ -181,7 +181,7 @@ func (m *MulticlaudeSource) Watch(ctx context.Context) (<-chan Message, error) {
 	}
 
 	// Initialize seen files
-	m.List("")
+	_, _ = m.List("")
 
 	go func() {
 		defer watcher.Close()
@@ -237,7 +237,7 @@ func (m *MulticlaudeSource) Watch(ctx context.Context) (<-chan Message, error) {
 		}
 
 		rescan := func() {
-			filepath.Walk(m.messagesDir(), func(path string, info os.FileInfo, err error) error {
+			_ = filepath.Walk(m.messagesDir(), func(path string, info os.FileInfo, err error) error {
 				if err != nil || info.IsDir() {
 					return nil
 				}
@@ -257,7 +257,7 @@ func (m *MulticlaudeSource) Watch(ctx context.Context) (<-chan Message, error) {
 				if event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
 					// If it's a directory, add it to the watch
 					if info, err := os.Stat(event.Name); err == nil && info.IsDir() {
-						watcher.Add(event.Name)
+						_ = watcher.Add(event.Name) // Best effort watch
 					} else {
 						checkFile(event.Name)
 					}

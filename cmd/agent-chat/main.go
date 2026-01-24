@@ -33,7 +33,7 @@ func main() {
 
 	// Override with environment variables if set
 	if v := os.Getenv("PORT"); v != "" {
-		fmt.Sscanf(v, "%d", &port)
+		_, _ = fmt.Sscanf(v, "%d", &port)
 	}
 	if v := os.Getenv("GASTOWN_DIR"); v != "" {
 		gastownDir = v
@@ -96,7 +96,9 @@ func main() {
 		<-sigCh
 		log.Println("Shutting down...")
 		cancel()
-		httpServer.Shutdown(context.Background())
+		if err := httpServer.Shutdown(context.Background()); err != nil {
+			log.Printf("HTTP server shutdown error: %v", err)
+		}
 	}()
 
 	log.Printf("Agent Chat running at http://localhost%s", addr)
