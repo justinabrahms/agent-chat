@@ -11,8 +11,8 @@ import (
 
 // Config holds application configuration.
 type Config struct {
-	Port          int    `yaml:"port"`
-	GastownDir    string `yaml:"gastown-dir"`
+	Port           int    `yaml:"port"`
+	GastownDir     string `yaml:"gastown-dir"`
 	MulticlaudeDir string `yaml:"multiclaude-dir"`
 }
 
