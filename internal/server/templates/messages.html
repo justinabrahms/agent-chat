@@ -1,0 +1,20 @@
+{{define "messages.html"}}
+<div class="messages-container">
+    {{range .Messages}}
+    <div class="message" data-source="{{.Source}}" data-workspace="{{.Workspace}}">
+        <div class="message-header">
+            <span class="message-source">{{sourceIcon .Source}}</span>
+            <span class="message-from">{{.From}}</span>
+            {{if .To}}<span class="message-arrow">→</span><span class="message-to">{{.To}}</span>{{end}}
+            <span class="message-time" title="{{.Timestamp}}">{{formatTime .Timestamp}}</span>
+        </div>
+        <div class="message-body">{{markdown .Body}}</div>
+    </div>
+    {{else}}
+    <div class="no-messages">
+        <p>No messages yet</p>
+        <p class="hint">Messages will appear here when agents communicate</p>
+    </div>
+    {{end}}
+</div>
+{{end}}

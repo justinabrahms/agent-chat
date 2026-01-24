@@ -1,0 +1,16 @@
+{{define "workspaces.html"}}
+<div class="sidebar-header">WORKSPACES</div>
+<nav class="workspace-list">
+    {{range .Workspaces}}
+    <a href="?workspace={{.}}"
+       hx-get="/messages?workspace={{.}}"
+       hx-target="#message-panel"
+       hx-push-url="?workspace={{.}}"
+       class="workspace-item {{if eq . $.SelectedWorkspace}}active{{end}}">
+        <span class="workspace-hash">#</span>{{.}}
+    </a>
+    {{else}}
+    <div class="no-workspaces">No workspaces found</div>
+    {{end}}
+</nav>
+{{end}}

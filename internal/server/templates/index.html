@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Chat</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/sse.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>Agent Chat</h1>
+            <div class="status" id="status">
+                <span class="status-dot disconnected"></span>
+                <span class="status-text">Connecting...</span>
+            </div>
+        </header>
+
+        <div class="main">
+            <aside class="sidebar" id="workspaces">
+                <div class="sidebar-header">WORKSPACES</div>
+                <nav class="workspace-list">
+                    {{range .Workspaces}}
+                    <a href="?workspace={{.}}"
+                       hx-get="/messages?workspace={{.}}"
+                       hx-target="#message-panel"
+                       hx-push-url="?workspace={{.}}"
+                       class="workspace-item {{if eq . $.SelectedWorkspace}}active{{end}}">
+                        <span class="workspace-hash">#</span>{{.}}
+                    </a>
+                    {{else}}
+                    <div class="no-workspaces">No workspaces found</div>
+                    {{end}}
+                </nav>
+                <div class="sidebar-footer">
+                    {{len .Sources}} source{{if ne (len .Sources) 1}}s{{end}} configured
+                </div>
+            </aside>
+
+            <main class="content">
+                <div class="channel-header">
+                    {{if .SelectedWorkspace}}
+                    <span class="channel-name">#{{.SelectedWorkspace}}</span>
+                    {{else}}
+                    <span class="channel-name">Select a workspace</span>
+                    {{end}}
+                </div>
+
+                <div class="message-panel" id="message-panel"
+                     hx-ext="sse"
+                     sse-connect="/events"
+                     sse-swap="message"
+                     hx-swap="beforeend">
+                    {{template "messages.html" .}}
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // SSE connection status handling
+        document.body.addEventListener('htmx:sseOpen', function(e) {
+            document.querySelector('.status-dot').className = 'status-dot connected';
+            document.querySelector('.status-text').textContent = 'Connected';
+        });
+
+        document.body.addEventListener('htmx:sseError', function(e) {
+            document.querySelector('.status-dot').className = 'status-dot disconnected';
+            document.querySelector('.status-text').textContent = 'Disconnected';
+        });
+
+        // Auto-scroll to bottom on new messages
+        const panel = document.getElementById('message-panel');
+        const observer = new MutationObserver(function() {
+            panel.scrollTop = panel.scrollHeight;
+        });
+        observer.observe(panel, { childList: true, subtree: true });
+
+        // Initial scroll
+        panel.scrollTop = panel.scrollHeight;
+
+        // Handle workspace clicks - update active state
+        document.querySelectorAll('.workspace-item').forEach(function(el) {
+            el.addEventListener('click', function() {
+                document.querySelectorAll('.workspace-item').forEach(function(item) {
+                    item.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

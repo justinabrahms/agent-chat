@@ -1,5 +1,5 @@
 # Binaries
-agent-chat
+/agent-chat
 *.exe
 *.dll
 *.so
