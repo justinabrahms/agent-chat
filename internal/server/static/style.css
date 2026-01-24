@@ -459,9 +459,88 @@ html, body {
     font-size: 13px;
 }
 
-.message-source {
-    font-size: 14px;
+/* Avatar SVG styling */
+.avatar {
+    flex-shrink: 0;
+    border-radius: 50%;
 }
+
+/* Sender color classes - subtle background tints for message identification */
+/* Dark theme sender colors */
+:root,
+[data-theme="dark"] {
+    --sender-0: rgba(255, 99, 99, 0.08);   /* red */
+    --sender-1: rgba(255, 159, 64, 0.08);  /* orange */
+    --sender-2: rgba(255, 205, 86, 0.08);  /* gold */
+    --sender-3: rgba(75, 192, 75, 0.08);   /* green */
+    --sender-4: rgba(75, 192, 192, 0.08);  /* cyan */
+    --sender-5: rgba(54, 162, 235, 0.08);  /* blue */
+    --sender-6: rgba(153, 102, 255, 0.08); /* purple */
+    --sender-7: rgba(255, 99, 255, 0.08);  /* magenta */
+    --sender-8: rgba(255, 99, 164, 0.08);  /* pink */
+}
+
+/* Light theme sender colors */
+[data-theme="light"] {
+    --sender-0: rgba(220, 53, 69, 0.06);   /* red */
+    --sender-1: rgba(253, 126, 20, 0.06);  /* orange */
+    --sender-2: rgba(255, 193, 7, 0.06);   /* gold */
+    --sender-3: rgba(40, 167, 69, 0.06);   /* green */
+    --sender-4: rgba(23, 162, 184, 0.06);  /* cyan */
+    --sender-5: rgba(0, 123, 255, 0.06);   /* blue */
+    --sender-6: rgba(111, 66, 193, 0.06);  /* purple */
+    --sender-7: rgba(232, 62, 140, 0.06);  /* magenta */
+    --sender-8: rgba(255, 105, 180, 0.06); /* pink */
+}
+
+@media (prefers-color-scheme: light) {
+    [data-theme="system"] {
+        --sender-0: rgba(220, 53, 69, 0.06);
+        --sender-1: rgba(253, 126, 20, 0.06);
+        --sender-2: rgba(255, 193, 7, 0.06);
+        --sender-3: rgba(40, 167, 69, 0.06);
+        --sender-4: rgba(23, 162, 184, 0.06);
+        --sender-5: rgba(0, 123, 255, 0.06);
+        --sender-6: rgba(111, 66, 193, 0.06);
+        --sender-7: rgba(232, 62, 140, 0.06);
+        --sender-8: rgba(255, 105, 180, 0.06);
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    [data-theme="system"] {
+        --sender-0: rgba(255, 99, 99, 0.08);
+        --sender-1: rgba(255, 159, 64, 0.08);
+        --sender-2: rgba(255, 205, 86, 0.08);
+        --sender-3: rgba(75, 192, 75, 0.08);
+        --sender-4: rgba(75, 192, 192, 0.08);
+        --sender-5: rgba(54, 162, 235, 0.08);
+        --sender-6: rgba(153, 102, 255, 0.08);
+        --sender-7: rgba(255, 99, 255, 0.08);
+        --sender-8: rgba(255, 99, 164, 0.08);
+    }
+}
+
+.message.sender-color-0 { background: var(--sender-0); }
+.message.sender-color-1 { background: var(--sender-1); }
+.message.sender-color-2 { background: var(--sender-2); }
+.message.sender-color-3 { background: var(--sender-3); }
+.message.sender-color-4 { background: var(--sender-4); }
+.message.sender-color-5 { background: var(--sender-5); }
+.message.sender-color-6 { background: var(--sender-6); }
+.message.sender-color-7 { background: var(--sender-7); }
+.message.sender-color-8 { background: var(--sender-8); }
+
+/* Hover states with sender colors preserved */
+.message.sender-color-0:hover { background: color-mix(in srgb, var(--sender-0) 60%, var(--message-hover)); }
+.message.sender-color-1:hover { background: color-mix(in srgb, var(--sender-1) 60%, var(--message-hover)); }
+.message.sender-color-2:hover { background: color-mix(in srgb, var(--sender-2) 60%, var(--message-hover)); }
+.message.sender-color-3:hover { background: color-mix(in srgb, var(--sender-3) 60%, var(--message-hover)); }
+.message.sender-color-4:hover { background: color-mix(in srgb, var(--sender-4) 60%, var(--message-hover)); }
+.message.sender-color-5:hover { background: color-mix(in srgb, var(--sender-5) 60%, var(--message-hover)); }
+.message.sender-color-6:hover { background: color-mix(in srgb, var(--sender-6) 60%, var(--message-hover)); }
+.message.sender-color-7:hover { background: color-mix(in srgb, var(--sender-7) 60%, var(--message-hover)); }
+.message.sender-color-8:hover { background: color-mix(in srgb, var(--sender-8) 60%, var(--message-hover)); }
 
 .message-from {
     font-weight: 600;
@@ -490,7 +569,7 @@ html, body {
 
 /* Continuation message body aligns with grouped messages */
 .message.continuation .message-body {
-    padding-left: 22px; /* Aligns with sender name (source icon width + gap) */
+    padding-left: 32px; /* Aligns with sender name (avatar 24px + gap 8px) */
 }
 
 .message-body br {

@@ -26,6 +26,34 @@ var (
 	issueRefRegex = regexp.MustCompile(`#(\d+)\b`)
 )
 
+// Avatar colors palette - works well in both dark and light themes.
+// Each color is an HSL hue value (0-360).
+var avatarHues = []int{
+	0,    // red
+	25,   // orange
+	45,   // gold
+	120,  // green
+	180,  // cyan
+	210,  // blue
+	260,  // purple
+	300,  // magenta
+	330,  // pink
+}
+
+// stringHash returns a consistent hash value for a string.
+func stringHash(s string) uint32 {
+	var h uint32 = 0
+	for _, c := range s {
+		h = h*31 + uint32(c)
+	}
+	return h
+}
+
+// avatarColorIndex returns a consistent index into the color palette for a name.
+func avatarColorIndex(name string) int {
+	return int(stringHash(name) % uint32(len(avatarHues)))
+}
+
 // linkifyURLs replaces URLs with clickable links.
 func linkifyURLs(s string) string {
 	return urlRegex.ReplaceAllStringFunc(s, func(url string) string {
@@ -162,6 +190,26 @@ func New(agg *message.Aggregator) (*Server, error) {
 			default:
 				return "📨"
 			}
+		},
+		"avatar": func(name string) template.HTML {
+			if name == "" {
+				name = "?"
+			}
+			// Get first character for initial
+			initial := strings.ToUpper(string([]rune(name)[0]))
+			// Get color from palette
+			idx := avatarColorIndex(name)
+			hue := avatarHues[idx]
+			// Generate inline SVG avatar
+			svg := fmt.Sprintf(`<svg class="avatar" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+				<circle cx="12" cy="12" r="12" fill="hsl(%d, 65%%, 50%%)"/>
+				<text x="12" y="16" text-anchor="middle" fill="white" font-size="12" font-weight="600" font-family="-apple-system, BlinkMacSystemFont, sans-serif">%s</text>
+			</svg>`, hue, initial)
+			return template.HTML(svg)
+		},
+		"senderColorClass": func(name string) string {
+			idx := avatarColorIndex(name)
+			return fmt.Sprintf("sender-color-%d", idx)
 		},
 		"markdown": func(s string) template.HTML {
 			return template.HTML(renderMarkdown(s))
