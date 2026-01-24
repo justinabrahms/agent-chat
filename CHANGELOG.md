@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-01-24
+
+### Added
+
+- **User avatars**: Sender avatars with subtle color highlighting for visual identification ([#34])
+- **Robot avatars**: Robohash-generated avatars for multiclaude agent messages ([#37])
+- **SVG favicon**: Custom favicon for the Agent Chat web UI ([#36])
+- **PR linking**: PR numbers in messages now link to actual repository pull requests ([#38])
+- **CI improvements**: Coverage job ([#24]), race detection in tests ([#25]), gofmt formatting check ([#26]), spec requirement check for substantial Go changes
+
+### Fixed
+
+- gofmt formatting issues in config, gastown structs, and server.go ([#32], [#35])
+- spec-check CI failure on push events ([#33])
+
+## [0.1.0] - 2026-01-24
+
 ### Added
 
 - **Chatroom UI**: Slack/Discord-style web interface for viewing agent messages with real-time updates via Server-Sent Events (SSE)
@@ -37,7 +54,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File watcher detects new directories immediately instead of waiting up to 30 seconds for periodic rescan ([#8])
 - golangci-lint errcheck errors ([#6])
 
-[Unreleased]: https://github.com/justinabrahms/agent-chat/compare/main...HEAD
+[Unreleased]: https://github.com/justinabrahms/agent-chat/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/justinabrahms/agent-chat/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/justinabrahms/agent-chat/releases/tag/v0.1.0
+[#38]: https://github.com/justinabrahms/agent-chat/pull/38
+[#37]: https://github.com/justinabrahms/agent-chat/pull/37
+[#36]: https://github.com/justinabrahms/agent-chat/pull/36
+[#35]: https://github.com/justinabrahms/agent-chat/pull/35
+[#34]: https://github.com/justinabrahms/agent-chat/pull/34
+[#33]: https://github.com/justinabrahms/agent-chat/pull/33
+[#32]: https://github.com/justinabrahms/agent-chat/pull/32
+[#28]: https://github.com/justinabrahms/agent-chat/pull/28
+[#27]: https://github.com/justinabrahms/agent-chat/pull/27
+[#26]: https://github.com/justinabrahms/agent-chat/pull/26
+[#25]: https://github.com/justinabrahms/agent-chat/pull/25
+[#24]: https://github.com/justinabrahms/agent-chat/pull/24
 [#17]: https://github.com/justinabrahms/agent-chat/pull/17
 [#18]: https://github.com/justinabrahms/agent-chat/pull/18
 [#16]: https://github.com/justinabrahms/agent-chat/pull/16
