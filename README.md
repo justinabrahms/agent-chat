@@ -1,6 +1,6 @@
 # Agent Chat
 
-A Slack-like chat interface for viewing agent communication. Displays messages from [Gas Town](https://github.com/yourusername/gastown) and [multiclaude](https://github.com/dlorenc/multiclaude) in a unified, real-time UI.
+A Slack-like chat interface for viewing agent communication. Displays messages from [Gas Town](https://github.com/steveyegge/gastown) and [multiclaude](https://github.com/dlorenc/multiclaude) in a unified, real-time UI.
 
 <img width="954" height="678" alt="Screenshot 2026-01-24 at 12 51 16 AM" src="https://github.com/user-attachments/assets/54b0ecde-204f-43c6-ade9-4ffe97e92d11" />
 
