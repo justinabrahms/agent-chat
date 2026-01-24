@@ -1,0 +1,63 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: agent-chat
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: agent-chat
+    main: ./cmd/agent-chat
+    binary: agent-chat
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X github.com/justinabrahms/agent-chat/internal/version.Version={{.Version}}
+      - -X github.com/justinabrahms/agent-chat/internal/version.GitCommit={{.Commit}}
+      - -X github.com/justinabrahms/agent-chat/internal/version.BuildDate={{.Date}}
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: justinabrahms
+    name: agent-chat
+  prerelease: auto
+  name_template: "{{.Tag}}"
