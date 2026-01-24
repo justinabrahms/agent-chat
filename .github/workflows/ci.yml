@@ -74,6 +74,8 @@ jobs:
   spec-check:
     name: Spec Requirement
     runs-on: ubuntu-latest
+    # Only run on pull requests - GITHUB_BASE_REF is not available on push events
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
         with:
