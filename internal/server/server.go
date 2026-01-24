@@ -116,6 +116,10 @@ func renderMarkdown(s string) string {
 		return fmt.Sprintf(placeholder, idx)
 	})
 
+	// Linkify URLs and issue references (before other processing)
+	s = linkifyURLs(s)
+	s = linkifyIssueRefs(s)
+
 	// Process inline markdown (simple: just remove **)
 	s = strings.ReplaceAll(s, "**", "")
 
