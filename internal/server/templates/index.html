@@ -12,6 +12,13 @@
     <div class="app">
         <header class="header">
             <h1>Agent Chat</h1>
+            <div class="search-container">
+                <input type="text"
+                       id="search-input"
+                       class="search-input"
+                       placeholder="Search messages..."
+                       autocomplete="off">
+            </div>
             <div class="status" id="status">
                 <span class="status-dot disconnected"></span>
                 <span class="status-text">Connecting...</span>
@@ -172,6 +179,69 @@
             markWorkspaceAsRead(activeWs.dataset.workspace);
         }
 
+        // Search functionality
+        const searchInput = document.getElementById('search-input');
+        let noResultsEl = null;
+
+        function filterMessages(query) {
+            const normalizedQuery = query.toLowerCase().trim();
+            const messages = document.querySelectorAll('.message');
+            let visibleCount = 0;
+
+            messages.forEach(function(msg) {
+                if (!normalizedQuery) {
+                    msg.classList.remove('search-hidden');
+                    visibleCount++;
+                    return;
+                }
+
+                const body = (msg.dataset.body || '').toLowerCase();
+                const from = (msg.dataset.from || '').toLowerCase();
+                const to = (msg.dataset.to || '').toLowerCase();
+                const workspace = (msg.dataset.workspace || '').toLowerCase();
+
+                const matches = body.includes(normalizedQuery) ||
+                               from.includes(normalizedQuery) ||
+                               to.includes(normalizedQuery) ||
+                               workspace.includes(normalizedQuery);
+
+                if (matches) {
+                    msg.classList.remove('search-hidden');
+                    visibleCount++;
+                } else {
+                    msg.classList.add('search-hidden');
+                }
+            });
+
+            // Show/hide no results message
+            const container = document.querySelector('.messages-container');
+            if (container) {
+                if (visibleCount === 0 && normalizedQuery && messages.length > 0) {
+                    if (!noResultsEl) {
+                        noResultsEl = document.createElement('div');
+                        noResultsEl.className = 'no-search-results';
+                        noResultsEl.innerHTML = '<p>No messages match your search</p><p class="hint">Try a different search term</p>';
+                    }
+                    if (!container.contains(noResultsEl)) {
+                        container.appendChild(noResultsEl);
+                    }
+                } else if (noResultsEl && container.contains(noResultsEl)) {
+                    container.removeChild(noResultsEl);
+                }
+            }
+        }
+
+        searchInput.addEventListener('input', function() {
+            filterMessages(this.value);
+        });
+
+        // Re-apply search filter when messages are loaded via HTMX
+        document.body.addEventListener('htmx:afterSwap', function(e) {
+            if (e.detail.target.id === 'message-panel') {
+                filterMessages(searchInput.value);
+            }
+        });
+
         // Keyboard navigation
         (function() {
             var selectedIndex = -1;
@@ -179,7 +249,7 @@
             var lastKey = '';
 
             function getMessages() {
-                return Array.from(document.querySelectorAll('.message'));
+                return Array.from(document.querySelectorAll('.message:not(.search-hidden)'));
             }
 
             function selectMessage(index) {
@@ -190,7 +260,7 @@
                 index = Math.max(0, Math.min(index, messages.length - 1));
 
                 // Remove previous selection
-                messages.forEach(function(m) {
+                document.querySelectorAll('.message').forEach(function(m) {
                     m.classList.remove('selected');
                 });
 
@@ -259,11 +329,8 @@
 
                 // /: focus search (if exists)
                 if (key === '/') {
-                    var searchInput = document.querySelector('input[type="search"], #search, .search-input');
-                    if (searchInput) {
-                        e.preventDefault();
-                        searchInput.focus();
-                    }
+                    e.preventDefault();
+                    searchInput.focus();
                     return;
                 }
 
