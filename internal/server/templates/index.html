@@ -143,6 +143,7 @@
 
         // Unread tracking using localStorage
         var STORAGE_KEY = 'agent-chat-read-times';
+        var BASE_TITLE = 'Agent Chat';
 
         function getReadTimes() {
             try {
@@ -158,6 +159,19 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(times));
         }
 
+        function getUnreadCount() {
+            return document.querySelectorAll('.workspace-item.has-unread').length;
+        }
+
+        function updateTabTitle() {
+            var count = getUnreadCount();
+            if (count > 0) {
+                document.title = '(' + count + ') ' + BASE_TITLE;
+            } else {
+                document.title = BASE_TITLE;
+            }
+        }
+
         function updateUnreadIndicators() {
             var readTimes = getReadTimes();
             document.querySelectorAll('.workspace-item').forEach(function(el) {
@@ -171,6 +185,7 @@
                     el.classList.remove('has-unread');
                 }
             });
+            updateTabTitle();
         }
 
         function markWorkspaceAsRead(workspace) {
@@ -179,6 +194,7 @@
                 var latestTime = parseInt(el.dataset.latestTime, 10) || Date.now();
                 setReadTime(workspace, latestTime);
                 el.classList.remove('has-unread');
+                updateTabTitle();
             }
         }
 
@@ -210,7 +226,12 @@
 
                 // If not the active workspace, show unread
                 if (!wsEl.classList.contains('active')) {
+                    var wasUnread = wsEl.classList.contains('has-unread');
                     wsEl.classList.add('has-unread');
+                    // Update tab title if this workspace just became unread
+                    if (!wasUnread) {
+                        updateTabTitle();
+                    }
                 }
             }
         }
