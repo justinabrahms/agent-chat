@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="system">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,13 @@
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/sse.js"></script>
     <link rel="stylesheet" href="/static/style.css">
+    <script>
+        // Apply saved theme immediately to prevent flash
+        (function() {
+            var saved = localStorage.getItem('agent-chat-theme') || 'system';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+    </script>
 </head>
 <body>
     <div class="app">
@@ -19,9 +26,38 @@
                        placeholder="Search messages..."
                        autocomplete="off">
             </div>
-            <div class="status" id="status">
-                <span class="status-dot disconnected"></span>
-                <span class="status-text">Connecting...</span>
+            <div class="header-right">
+                <div class="theme-toggle" role="group" aria-label="Theme selection">
+                    <button type="button" data-theme-value="light" title="Light theme" aria-label="Light theme">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                    </button>
+                    <button type="button" data-theme-value="system" title="System theme" aria-label="System theme">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                    </button>
+                    <button type="button" data-theme-value="dark" title="Dark theme" aria-label="Dark theme">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="status" id="status">
+                    <span class="status-dot disconnected"></span>
+                    <span class="status-text">Connecting...</span>
+                </div>
             </div>
         </header>
 
@@ -70,8 +106,43 @@
     </div>
 
     <script>
+        // Theme management
+        (function() {
+            var THEME_KEY = 'agent-chat-theme';
+
+            function getTheme() {
+                return localStorage.getItem(THEME_KEY) || 'system';
+            }
+
+            function setTheme(theme) {
+                localStorage.setItem(THEME_KEY, theme);
+                document.documentElement.setAttribute('data-theme', theme);
+                updateToggleButtons(theme);
+            }
+
+            function updateToggleButtons(theme) {
+                document.querySelectorAll('.theme-toggle button').forEach(function(btn) {
+                    if (btn.dataset.themeValue === theme) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            }
+
+            // Initialize toggle buttons
+            document.querySelectorAll('.theme-toggle button').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    setTheme(this.dataset.themeValue);
+                });
+            });
+
+            // Set initial active state
+            updateToggleButtons(getTheme());
+        })();
+
         // Unread tracking using localStorage
-        const STORAGE_KEY = 'agent-chat-read-times';
+        var STORAGE_KEY = 'agent-chat-read-times';
 
         function getReadTimes() {
             try {
@@ -82,17 +153,17 @@
         }
 
         function setReadTime(workspace, time) {
-            const times = getReadTimes();
+            var times = getReadTimes();
             times[workspace] = time;
             localStorage.setItem(STORAGE_KEY, JSON.stringify(times));
         }
 
         function updateUnreadIndicators() {
-            const readTimes = getReadTimes();
+            var readTimes = getReadTimes();
             document.querySelectorAll('.workspace-item').forEach(function(el) {
-                const workspace = el.dataset.workspace;
-                const latestTime = parseInt(el.dataset.latestTime, 10) || 0;
-                const readTime = readTimes[workspace] || 0;
+                var workspace = el.dataset.workspace;
+                var latestTime = parseInt(el.dataset.latestTime, 10) || 0;
+                var readTime = readTimes[workspace] || 0;
 
                 if (latestTime > readTime) {
                     el.classList.add('has-unread');
@@ -103,9 +174,9 @@
         }
 
         function markWorkspaceAsRead(workspace) {
-            const el = document.querySelector(`.workspace-item[data-workspace="${workspace}"]`);
+            var el = document.querySelector('.workspace-item[data-workspace="' + workspace + '"]');
             if (el) {
-                const latestTime = parseInt(el.dataset.latestTime, 10) || Date.now();
+                var latestTime = parseInt(el.dataset.latestTime, 10) || Date.now();
                 setReadTime(workspace, latestTime);
                 el.classList.remove('has-unread');
             }
@@ -126,14 +197,14 @@
         document.body.addEventListener('htmx:sseMessage', function(e) {
             if (e.detail.type === 'message') {
                 try {
-                    const msg = JSON.parse(e.detail.data);
-                    const workspace = msg.workspace;
-                    const msgTime = new Date(msg.timestamp).getTime();
+                    var msg = JSON.parse(e.detail.data);
+                    var workspace = msg.workspace;
+                    var msgTime = new Date(msg.timestamp).getTime();
 
                     // Update the data-latest-time for this workspace
-                    const wsEl = document.querySelector(`.workspace-item[data-workspace="${workspace}"]`);
+                    var wsEl = document.querySelector('.workspace-item[data-workspace="' + workspace + '"]');
                     if (wsEl) {
-                        const currentLatest = parseInt(wsEl.dataset.latestTime, 10) || 0;
+                        var currentLatest = parseInt(wsEl.dataset.latestTime, 10) || 0;
                         if (msgTime > currentLatest) {
                             wsEl.dataset.latestTime = msgTime;
                         }
@@ -150,8 +221,8 @@
         });
 
         // Auto-scroll to bottom on new messages
-        const panel = document.getElementById('message-panel');
-        const observer = new MutationObserver(function() {
+        var panel = document.getElementById('message-panel');
+        var observer = new MutationObserver(function() {
             panel.scrollTop = panel.scrollHeight;
         });
         observer.observe(panel, { childList: true, subtree: true });
@@ -174,7 +245,7 @@
         updateUnreadIndicators();
 
         // Mark initially selected workspace as read
-        const activeWs = document.querySelector('.workspace-item.active');
+        var activeWs = document.querySelector('.workspace-item.active');
         if (activeWs) {
             markWorkspaceAsRead(activeWs.dataset.workspace);
         }
