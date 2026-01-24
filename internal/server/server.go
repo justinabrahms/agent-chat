@@ -22,6 +22,13 @@ var templatesFS embed.FS
 //go:embed static/*
 var staticFS embed.FS
 
+// WorkspaceInfo contains workspace metadata for the UI.
+type WorkspaceInfo struct {
+	Name          string
+	LatestMsgTime int64 // Unix milliseconds for JavaScript compatibility
+	MessageCount  int
+}
+
 // Server handles HTTP requests for the chat UI.
 type Server struct {
 	aggregator *message.Aggregator
@@ -115,6 +122,30 @@ func (s *Server) unsubscribe(ch chan message.Message) {
 	close(ch)
 }
 
+// getWorkspaceInfos returns workspace metadata including latest message timestamps.
+func (s *Server) getWorkspaceInfos() []WorkspaceInfo {
+	workspaces, _ := s.aggregator.Workspaces()
+	sort.Strings(workspaces)
+
+	infos := make([]WorkspaceInfo, 0, len(workspaces))
+	for _, ws := range workspaces {
+		msgs, _ := s.aggregator.List(ws)
+		var latestTime int64
+		for _, msg := range msgs {
+			ts := msg.Timestamp.UnixMilli()
+			if ts > latestTime {
+				latestTime = ts
+			}
+		}
+		infos = append(infos, WorkspaceInfo{
+			Name:          ws,
+			LatestMsgTime: latestTime,
+			MessageCount:  len(msgs),
+		})
+	}
+	return infos
+}
+
 // Handler returns an http.Handler for the server.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
@@ -149,12 +180,11 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	workspaces, _ := s.aggregator.Workspaces()
-	sort.Strings(workspaces)
+	workspaceInfos := s.getWorkspaceInfos()
 
 	selectedWS := r.URL.Query().Get("workspace")
-	if selectedWS == "" && len(workspaces) > 0 {
-		selectedWS = workspaces[0]
+	if selectedWS == "" && len(workspaceInfos) > 0 {
+		selectedWS = workspaceInfos[0].Name
 	}
 
 	messages, _ := s.aggregator.List(selectedWS)
@@ -163,7 +193,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	})
 
 	data := map[string]any{
-		"Workspaces":        workspaces,
+		"Workspaces":        workspaceInfos,
 		"SelectedWorkspace": selectedWS,
 		"Messages":          messages,
 		"Sources":           s.aggregator.Sources(),
@@ -176,13 +206,11 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleWorkspaces(w http.ResponseWriter, r *http.Request) {
-	workspaces, _ := s.aggregator.Workspaces()
-	sort.Strings(workspaces)
-
+	workspaceInfos := s.getWorkspaceInfos()
 	selectedWS := r.URL.Query().Get("selected")
 
 	data := map[string]any{
-		"Workspaces":        workspaces,
+		"Workspaces":        workspaceInfos,
 		"SelectedWorkspace": selectedWS,
 	}
 

@@ -129,6 +129,42 @@ html, body {
     margin-right: 4px;
 }
 
+/* Unread indicator */
+.unread-indicator {
+    display: none;
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.workspace-item.has-unread {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.workspace-item.has-unread .unread-indicator {
+    display: block;
+    animation: pulse 2s infinite;
+}
+
+.workspace-item.has-unread .workspace-hash {
+    color: var(--accent);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 4px var(--accent);
+    }
+    50% {
+        opacity: 0.6;
+        box-shadow: 0 0 8px var(--accent);
+    }
+}
+
 .no-workspaces {
     padding: 16px;
     color: var(--text-muted);

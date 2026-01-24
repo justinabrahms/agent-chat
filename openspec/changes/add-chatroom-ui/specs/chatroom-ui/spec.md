@@ -40,3 +40,19 @@ The system SHALL display messages in chronological order with newest messages at
 #### Scenario: New message positioning
 - **WHEN** a new message arrives
 - **THEN** it is appended to the bottom of the message list
+
+### Requirement: Unread Message Indicators
+The system SHALL visually indicate workspaces that contain messages the user has not yet viewed, using browser localStorage to track read state.
+
+#### Scenario: Workspace has unread messages
+- **WHEN** a workspace has messages newer than the user's last view
+- **THEN** the workspace is highlighted in the sidebar with an unread indicator
+
+#### Scenario: Mark workspace as read
+- **WHEN** the user selects a workspace
+- **THEN** that workspace is marked as read up to the current time
+- **AND** the unread indicator is removed
+
+#### Scenario: New message in non-selected workspace
+- **WHEN** a new message arrives for a workspace the user is not viewing
+- **THEN** an unread indicator appears on that workspace in the sidebar

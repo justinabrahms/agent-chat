@@ -23,12 +23,15 @@
                 <div class="sidebar-header">WORKSPACES</div>
                 <nav class="workspace-list">
                     {{range .Workspaces}}
-                    <a href="?workspace={{.}}"
-                       hx-get="/messages?workspace={{.}}"
+                    <a href="?workspace={{.Name}}"
+                       hx-get="/messages?workspace={{.Name}}"
                        hx-target="#message-panel"
-                       hx-push-url="?workspace={{.}}"
-                       class="workspace-item {{if eq . $.SelectedWorkspace}}active{{end}}">
-                        <span class="workspace-hash">#</span>{{.}}
+                       hx-push-url="?workspace={{.Name}}"
+                       data-workspace="{{.Name}}"
+                       data-latest-time="{{.LatestMsgTime}}"
+                       class="workspace-item {{if eq .Name $.SelectedWorkspace}}active{{end}}">
+                        <span class="workspace-hash">#</span>{{.Name}}
+                        <span class="unread-indicator"></span>
                     </a>
                     {{else}}
                     <div class="no-workspaces">No workspaces found</div>
@@ -60,6 +63,47 @@
     </div>
 
     <script>
+        // Unread tracking using localStorage
+        const STORAGE_KEY = 'agent-chat-read-times';
+
+        function getReadTimes() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function setReadTime(workspace, time) {
+            const times = getReadTimes();
+            times[workspace] = time;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(times));
+        }
+
+        function updateUnreadIndicators() {
+            const readTimes = getReadTimes();
+            document.querySelectorAll('.workspace-item').forEach(function(el) {
+                const workspace = el.dataset.workspace;
+                const latestTime = parseInt(el.dataset.latestTime, 10) || 0;
+                const readTime = readTimes[workspace] || 0;
+
+                if (latestTime > readTime) {
+                    el.classList.add('has-unread');
+                } else {
+                    el.classList.remove('has-unread');
+                }
+            });
+        }
+
+        function markWorkspaceAsRead(workspace) {
+            const el = document.querySelector(`.workspace-item[data-workspace="${workspace}"]`);
+            if (el) {
+                const latestTime = parseInt(el.dataset.latestTime, 10) || Date.now();
+                setReadTime(workspace, latestTime);
+                el.classList.remove('has-unread');
+            }
+        }
+
         // SSE connection status handling
         document.body.addEventListener('htmx:sseOpen', function(e) {
             document.querySelector('.status-dot').className = 'status-dot connected';
@@ -69,6 +113,33 @@
         document.body.addEventListener('htmx:sseError', function(e) {
             document.querySelector('.status-dot').className = 'status-dot disconnected';
             document.querySelector('.status-text').textContent = 'Disconnected';
+        });
+
+        // Handle SSE messages for unread indicators
+        document.body.addEventListener('htmx:sseMessage', function(e) {
+            if (e.detail.type === 'message') {
+                try {
+                    const msg = JSON.parse(e.detail.data);
+                    const workspace = msg.workspace;
+                    const msgTime = new Date(msg.timestamp).getTime();
+
+                    // Update the data-latest-time for this workspace
+                    const wsEl = document.querySelector(`.workspace-item[data-workspace="${workspace}"]`);
+                    if (wsEl) {
+                        const currentLatest = parseInt(wsEl.dataset.latestTime, 10) || 0;
+                        if (msgTime > currentLatest) {
+                            wsEl.dataset.latestTime = msgTime;
+                        }
+
+                        // If not the active workspace, show unread
+                        if (!wsEl.classList.contains('active')) {
+                            wsEl.classList.add('has-unread');
+                        }
+                    }
+                } catch (err) {
+                    // Ignore parse errors
+                }
+            }
         });
 
         // Auto-scroll to bottom on new messages
@@ -81,15 +152,25 @@
         // Initial scroll
         panel.scrollTop = panel.scrollHeight;
 
-        // Handle workspace clicks - update active state
+        // Handle workspace clicks - update active state and mark as read
         document.querySelectorAll('.workspace-item').forEach(function(el) {
             el.addEventListener('click', function() {
                 document.querySelectorAll('.workspace-item').forEach(function(item) {
                     item.classList.remove('active');
                 });
                 this.classList.add('active');
+                markWorkspaceAsRead(this.dataset.workspace);
             });
         });
+
+        // Initial unread check
+        updateUnreadIndicators();
+
+        // Mark initially selected workspace as read
+        const activeWs = document.querySelector('.workspace-item.active');
+        if (activeWs) {
+            markWorkspaceAsRead(activeWs.dataset.workspace);
+        }
     </script>
 </body>
 </html>

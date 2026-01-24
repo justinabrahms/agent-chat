@@ -2,12 +2,15 @@
 <div class="sidebar-header">WORKSPACES</div>
 <nav class="workspace-list">
     {{range .Workspaces}}
-    <a href="?workspace={{.}}"
-       hx-get="/messages?workspace={{.}}"
+    <a href="?workspace={{.Name}}"
+       hx-get="/messages?workspace={{.Name}}"
        hx-target="#message-panel"
-       hx-push-url="?workspace={{.}}"
-       class="workspace-item {{if eq . $.SelectedWorkspace}}active{{end}}">
-        <span class="workspace-hash">#</span>{{.}}
+       hx-push-url="?workspace={{.Name}}"
+       data-workspace="{{.Name}}"
+       data-latest-time="{{.LatestMsgTime}}"
+       class="workspace-item {{if eq .Name $.SelectedWorkspace}}active{{end}}">
+        <span class="workspace-hash">#</span>{{.Name}}
+        <span class="unread-indicator"></span>
     </a>
     {{else}}
     <div class="no-workspaces">No workspaces found</div>
