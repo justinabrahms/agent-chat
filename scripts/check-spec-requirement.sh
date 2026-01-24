@@ -16,13 +16,14 @@ set -e
 LINE_THRESHOLD=50
 FILE_THRESHOLD=3
 
-# Get the base branch (default to origin/main for PRs)
-BASE_BRANCH="${GITHUB_BASE_REF:-origin/main}"
+# Get the base branch from GitHub Actions environment
+if [ -z "$GITHUB_BASE_REF" ]; then
+    echo "ERROR: GITHUB_BASE_REF is not set. This script should run in a GitHub Actions PR context."
+    exit 1
+fi
+BASE_BRANCH="origin/${GITHUB_BASE_REF}"
 
 echo "Checking for spec requirement against ${BASE_BRANCH}..."
-
-# Ensure we have the base branch
-git fetch origin main --depth=1 2>/dev/null || true
 
 # Get changed files
 CHANGED_FILES=$(git diff --name-only "${BASE_BRANCH}"...HEAD 2>/dev/null || git diff --name-only "${BASE_BRANCH}" HEAD)
