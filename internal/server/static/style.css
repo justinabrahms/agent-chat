@@ -222,6 +222,20 @@ html, body {
     background: var(--message-hover);
 }
 
+.message.selected {
+    background: var(--message-hover);
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+
+/* Workspace item keyboard focus */
+.workspace-item:focus {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+
 .message-header {
     display: flex;
     align-items: center;

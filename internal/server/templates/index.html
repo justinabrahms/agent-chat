@@ -171,6 +171,117 @@
         if (activeWs) {
             markWorkspaceAsRead(activeWs.dataset.workspace);
         }
+
+        // Keyboard navigation
+        (function() {
+            var selectedIndex = -1;
+            var lastKeyTime = 0;
+            var lastKey = '';
+
+            function getMessages() {
+                return Array.from(document.querySelectorAll('.message'));
+            }
+
+            function selectMessage(index) {
+                var messages = getMessages();
+                if (messages.length === 0) return;
+
+                // Clamp index
+                index = Math.max(0, Math.min(index, messages.length - 1));
+
+                // Remove previous selection
+                messages.forEach(function(m) {
+                    m.classList.remove('selected');
+                });
+
+                // Select new message
+                selectedIndex = index;
+                messages[index].classList.add('selected');
+                messages[index].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+
+            function isInputFocused() {
+                var el = document.activeElement;
+                if (!el) return false;
+                var tag = el.tagName.toLowerCase();
+                return tag === 'input' || tag === 'textarea' || el.isContentEditable;
+            }
+
+            document.addEventListener('keydown', function(e) {
+                if (isInputFocused()) return;
+
+                var key = e.key.toLowerCase();
+                var now = Date.now();
+
+                // g+w chord: jump to workspace list
+                if (lastKey === 'g' && key === 'w' && (now - lastKeyTime) < 500) {
+                    e.preventDefault();
+                    var firstWorkspace = document.querySelector('.workspace-item');
+                    if (firstWorkspace) {
+                        firstWorkspace.focus();
+                    }
+                    lastKey = '';
+                    return;
+                }
+
+                // Track g key for chord
+                if (key === 'g') {
+                    lastKey = 'g';
+                    lastKeyTime = now;
+                    return;
+                }
+
+                // j: next message
+                if (key === 'j') {
+                    e.preventDefault();
+                    var messages = getMessages();
+                    if (messages.length === 0) return;
+                    if (selectedIndex < 0) {
+                        selectMessage(0);
+                    } else {
+                        selectMessage(selectedIndex + 1);
+                    }
+                    return;
+                }
+
+                // k: previous message
+                if (key === 'k') {
+                    e.preventDefault();
+                    var messages = getMessages();
+                    if (messages.length === 0) return;
+                    if (selectedIndex < 0) {
+                        selectMessage(messages.length - 1);
+                    } else {
+                        selectMessage(selectedIndex - 1);
+                    }
+                    return;
+                }
+
+                // /: focus search (if exists)
+                if (key === '/') {
+                    var searchInput = document.querySelector('input[type="search"], #search, .search-input');
+                    if (searchInput) {
+                        e.preventDefault();
+                        searchInput.focus();
+                    }
+                    return;
+                }
+
+                // Reset chord tracking for other keys
+                lastKey = '';
+            });
+
+            // Reset selection when messages container updates
+            var msgPanel = document.getElementById('message-panel');
+            var msgObserver = new MutationObserver(function() {
+                // Keep selection valid if messages changed
+                var messages = getMessages();
+                if (selectedIndex >= messages.length) {
+                    selectedIndex = messages.length - 1;
+                }
+            });
+            msgObserver.observe(msgPanel, { childList: true, subtree: true });
+        })();
     </script>
 </body>
 </html>
