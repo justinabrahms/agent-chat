@@ -106,6 +106,61 @@
     </div>
 
     <script>
+        // Relative timestamp formatting
+        function formatRelativeTime(timestamp) {
+            var now = Date.now();
+            var diff = now - timestamp;
+            var seconds = Math.floor(diff / 1000);
+            var minutes = Math.floor(seconds / 60);
+            var hours = Math.floor(minutes / 60);
+            var days = Math.floor(hours / 24);
+
+            if (seconds < 60) {
+                return 'just now';
+            } else if (minutes < 60) {
+                return minutes === 1 ? '1 minute ago' : minutes + ' minutes ago';
+            } else if (hours < 24) {
+                return hours === 1 ? '1 hour ago' : hours + ' hours ago';
+            } else if (days === 1) {
+                return 'yesterday';
+            } else if (days < 7) {
+                var date = new Date(timestamp);
+                var dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                return dayNames[date.getDay()];
+            } else {
+                var date = new Date(timestamp);
+                var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return monthNames[date.getMonth()] + ' ' + date.getDate();
+            }
+        }
+
+        function formatAbsoluteTime(timestamp) {
+            var date = new Date(timestamp);
+            var monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            var hours = date.getHours();
+            var minutes = date.getMinutes();
+            var ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            var minutesStr = minutes < 10 ? '0' + minutes : minutes;
+            return monthNames[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear() + ', ' + hours + ':' + minutesStr + ' ' + ampm;
+        }
+
+        function updateTimestamp(msgEl) {
+            var timestamp = parseInt(msgEl.dataset.timestamp, 10);
+            if (!timestamp) return;
+
+            var timeEl = msgEl.querySelector('.message-time, .message-time-hover');
+            if (timeEl) {
+                timeEl.textContent = formatRelativeTime(timestamp);
+                timeEl.title = formatAbsoluteTime(timestamp);
+            }
+        }
+
+        function updateAllTimestamps() {
+            document.querySelectorAll('.message[data-timestamp]').forEach(updateTimestamp);
+        }
+
         // Theme management
         (function() {
             var THEME_KEY = 'agent-chat-theme';
@@ -211,6 +266,9 @@
 
         // Handle new messages for unread indicators (via MutationObserver)
         function handleNewMessage(msgEl) {
+            // Update relative timestamp for new message
+            updateTimestamp(msgEl);
+
             const workspace = msgEl.dataset.workspace;
             const msgTime = parseInt(msgEl.dataset.timestamp, 10) || 0;
 
@@ -334,12 +392,19 @@
             filterMessages(this.value);
         });
 
-        // Re-apply search filter when messages are loaded via HTMX
+        // Re-apply search filter and update timestamps when messages are loaded via HTMX
         document.body.addEventListener('htmx:afterSwap', function(e) {
             if (e.detail.target.id === 'message-panel') {
                 filterMessages(searchInput.value);
+                updateAllTimestamps();
             }
         });
+
+        // Initialize timestamps on page load
+        updateAllTimestamps();
+
+        // Update timestamps every 30 seconds
+        setInterval(updateAllTimestamps, 30000);
 
         // Keyboard navigation
         (function() {
