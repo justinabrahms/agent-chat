@@ -14,6 +14,7 @@ import (
 	"github.com/justinabrahms/agent-chat/internal/config"
 	"github.com/justinabrahms/agent-chat/internal/message"
 	"github.com/justinabrahms/agent-chat/internal/server"
+	"github.com/justinabrahms/agent-chat/internal/version"
 )
 
 func main() {
@@ -22,6 +23,7 @@ func main() {
 		gastownDir     string
 		multiclaudeDir string
 		configPath     string
+		showVersion    bool
 	)
 
 	homeDir, _ := os.UserHomeDir()
@@ -32,7 +34,13 @@ func main() {
 	flag.StringVar(&gastownDir, "gastown-dir", defaultBeadsDir, "Path to Gas Town .beads directory")
 	flag.StringVar(&multiclaudeDir, "multiclaude-dir", defaultMulticlaudeDir, "Path to multiclaude directory")
 	flag.StringVar(&configPath, "config", "", "Path to config file (default: ~/.config/agent-chat/config.yaml)")
+	flag.BoolVar(&showVersion, "version", false, "Print version information and exit")
 	flag.Parse()
+
+	if showVersion {
+		fmt.Println(version.String())
+		os.Exit(0)
+	}
 
 	// Track which flags were explicitly set
 	explicitFlags := make(map[string]bool)
