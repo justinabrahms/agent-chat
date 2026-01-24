@@ -62,10 +62,21 @@ func linkifyURLs(s string) string {
 }
 
 // linkifyIssueRefs replaces GitHub-style issue references with links.
-func linkifyIssueRefs(s string) string {
+// If repoURL is provided (e.g., "https://github.com/owner/repo"), links go to that repo's PR/issue.
+// Otherwise, links go to a generic GitHub search.
+func linkifyIssueRefs(s string, repoURL string) string {
 	return issueRefRegex.ReplaceAllStringFunc(s, func(ref string) string {
 		num := ref[1:] // Remove the # prefix
-		return fmt.Sprintf(`<a href="https://github.com/search?q=%s&type=issues" target="_blank" rel="noopener noreferrer" class="issue-ref" data-issue="%s">%s</a>`, num, num, ref)
+		var href string
+		if repoURL != "" {
+			// Convert git URL to web URL and link to the pull request
+			// Handle both https://github.com/owner/repo.git and https://github.com/owner/repo
+			webURL := strings.TrimSuffix(repoURL, ".git")
+			href = fmt.Sprintf("%s/pull/%s", webURL, num)
+		} else {
+			href = fmt.Sprintf("https://github.com/search?q=%s&type=issues", num)
+		}
+		return fmt.Sprintf(`<a href="%s" target="_blank" rel="noopener noreferrer" class="issue-ref" data-issue="%s">%s</a>`, href, num, ref)
 	})
 }
 
@@ -115,8 +126,9 @@ func groupMessages(msgs []message.Message) []GroupedMessage {
 // codeBlockRegex matches fenced code blocks with optional language hint
 var codeBlockRegex = regexp.MustCompile("(?s)```(\\w*)\\n?(.*?)```")
 
-// renderMarkdown converts markdown-ish text to HTML with code block support
-func renderMarkdown(s string) string {
+// renderMarkdown converts markdown-ish text to HTML with code block support.
+// repoURL is used to create proper GitHub links for issue/PR references.
+func renderMarkdown(s string, repoURL string) string {
 	// First, extract and replace code blocks with placeholders
 	var codeBlocks []string
 	placeholder := "\x00CODE_BLOCK_%d\x00"
@@ -146,7 +158,7 @@ func renderMarkdown(s string) string {
 
 	// Linkify URLs and issue references (before other processing)
 	s = linkifyURLs(s)
-	s = linkifyIssueRefs(s)
+	s = linkifyIssueRefs(s, repoURL)
 
 	// Process inline markdown (simple: just remove **)
 	s = strings.ReplaceAll(s, "**", "")
@@ -167,13 +179,23 @@ type Server struct {
 	aggregator *message.Aggregator
 	templates  *template.Template
 
+	// RepoURLs maps workspace names (e.g., "mc-agent-chat") to GitHub URLs.
+	RepoURLs map[string]string
+
 	// SSE subscribers
 	mu          sync.RWMutex
 	subscribers map[chan message.Message]bool
 }
 
 // New creates a new server with the given message aggregator.
-func New(agg *message.Aggregator) (*Server, error) {
+// repoURLs maps workspace names (e.g., "mc-agent-chat") to GitHub URLs.
+func New(agg *message.Aggregator, repoURLs map[string]string) (*Server, error) {
+	srv := &Server{
+		aggregator:  agg,
+		RepoURLs:    repoURLs,
+		subscribers: make(map[chan message.Message]bool),
+	}
+
 	funcMap := template.FuncMap{
 		"formatTime": func(t time.Time) string {
 			return t.Format("15:04")
@@ -221,8 +243,9 @@ func New(agg *message.Aggregator) (*Server, error) {
 			idx := avatarColorIndex(name)
 			return fmt.Sprintf("sender-color-%d", idx)
 		},
-		"markdown": func(s string) template.HTML {
-			return template.HTML(renderMarkdown(s))
+		"markdown": func(body, workspace string) template.HTML {
+			repoURL := srv.RepoURLs[workspace]
+			return template.HTML(renderMarkdown(body, repoURL))
 		},
 	}
 
@@ -231,11 +254,8 @@ func New(agg *message.Aggregator) (*Server, error) {
 		return nil, fmt.Errorf("parsing templates: %w", err)
 	}
 
-	return &Server{
-		aggregator:  agg,
-		templates:   tmpl,
-		subscribers: make(map[chan message.Message]bool),
-	}, nil
+	srv.templates = tmpl
+	return srv, nil
 }
 
 // Start begins broadcasting messages from the aggregator to SSE subscribers.

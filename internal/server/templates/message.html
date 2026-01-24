@@ -6,6 +6,6 @@
         {{if .To}}<span class="message-arrow">→</span><span class="message-to">{{.To}}</span>{{end}}
         <span class="message-time" title="{{.Timestamp}}">{{formatTime .Timestamp}}</span>
     </div>
-    <div class="message-body">{{markdown .Body}}</div>
+    <div class="message-body">{{markdown .Body .Workspace}}</div>
 </div>
 {{end}}

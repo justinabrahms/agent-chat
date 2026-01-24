@@ -12,7 +12,7 @@
         {{else}}
         <div class="message-time-hover" title="{{.Timestamp}}">{{formatTime .Timestamp}}</div>
         {{end}}
-        <div class="message-body">{{markdown .Body}}</div>
+        <div class="message-body">{{markdown .Body .Workspace}}</div>
     </div>
     {{else}}
     <div class="no-messages">

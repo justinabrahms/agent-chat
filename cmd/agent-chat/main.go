@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -16,6 +17,35 @@ import (
 	"github.com/justinabrahms/agent-chat/internal/server"
 	"github.com/justinabrahms/agent-chat/internal/version"
 )
+
+// loadRepoURLs reads the multiclaude state.json and extracts repo URL mappings.
+// Returns a map from workspace name (e.g., "mc-agent-chat") to GitHub URL.
+func loadRepoURLs(multiclaudeDir string) map[string]string {
+	result := make(map[string]string)
+
+	statePath := filepath.Join(multiclaudeDir, "state.json")
+	data, err := os.ReadFile(statePath)
+	if err != nil {
+		return result
+	}
+
+	var state struct {
+		Repos map[string]struct {
+			GitHubURL string `json:"github_url"`
+		} `json:"repos"`
+	}
+
+	if err := json.Unmarshal(data, &state); err != nil {
+		return result
+	}
+
+	for repoName, repo := range state.Repos {
+		workspace := "mc-" + repoName
+		result[workspace] = repo.GitHubURL
+	}
+
+	return result
+}
 
 func main() {
 	var (
@@ -104,8 +134,11 @@ func main() {
 	// Create aggregator
 	agg := message.NewAggregator(sources...)
 
+	// Load repo URL mappings for PR links
+	repoURLs := loadRepoURLs(multiclaudeDir)
+
 	// Create server
-	srv, err := server.New(agg)
+	srv, err := server.New(agg, repoURLs)
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
 	}
