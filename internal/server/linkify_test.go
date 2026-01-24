@@ -66,52 +66,72 @@ func TestLinkifyIssueRefs(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
+		repoURL  string
 		contains []string
 		excludes []string
 	}{
 		{
-			name:     "Single issue reference",
+			name:     "Single issue reference without repo",
 			input:    "Fixed in #123",
-			contains: []string{`<a href=`, `#123`, `target="_blank"`, `data-issue="123"`},
+			repoURL:  "",
+			contains: []string{`<a href="https://github.com/search?q=123`, `#123`, `target="_blank"`, `data-issue="123"`},
+		},
+		{
+			name:     "Single issue reference with repo",
+			input:    "Fixed in #123",
+			repoURL:  "https://github.com/owner/repo",
+			contains: []string{`<a href="https://github.com/owner/repo/pull/123"`, `#123`, `target="_blank"`, `data-issue="123"`},
+		},
+		{
+			name:     "Issue reference with .git suffix in repo URL",
+			input:    "See #456",
+			repoURL:  "https://github.com/owner/repo.git",
+			contains: []string{`href="https://github.com/owner/repo/pull/456"`},
+			excludes: []string{`.git/pull`},
 		},
 		{
 			name:     "Multiple issue references",
 			input:    "See #123 and #456",
+			repoURL:  "",
 			contains: []string{`data-issue="123"`, `data-issue="456"`},
 		},
 		{
 			name:     "No issue reference",
 			input:    "Just plain text",
+			repoURL:  "",
 			excludes: []string{`<a href=`},
 		},
 		{
 			name:     "Hash with non-numeric (color code)",
 			input:    "Color #ffffff",
+			repoURL:  "",
 			excludes: []string{`<a href=`},
 		},
 		{
 			name:     "Hash channel name",
 			input:    "Channel #general",
+			repoURL:  "",
 			excludes: []string{`<a href=`},
 		},
 		{
 			name:     "Issue at start of line",
 			input:    "#42 is the answer",
+			repoURL:  "",
 			contains: []string{`data-issue="42"`},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := linkifyIssueRefs(tt.input)
+			result := linkifyIssueRefs(tt.input, tt.repoURL)
 			for _, want := range tt.contains {
 				if !strings.Contains(result, want) {
-					t.Errorf("linkifyIssueRefs(%q) = %q, want to contain %q", tt.input, result, want)
+					t.Errorf("linkifyIssueRefs(%q, %q) = %q, want to contain %q", tt.input, tt.repoURL, result, want)
 				}
 			}
 			for _, notWant := range tt.excludes {
 				if strings.Contains(result, notWant) {
-					t.Errorf("linkifyIssueRefs(%q) = %q, should not contain %q", tt.input, result, notWant)
+					t.Errorf("linkifyIssueRefs(%q, %q) = %q, should not contain %q", tt.input, tt.repoURL, result, notWant)
 				}
 			}
 		})
