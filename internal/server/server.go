@@ -191,10 +191,20 @@ func New(agg *message.Aggregator) (*Server, error) {
 				return "📨"
 			}
 		},
-		"avatar": func(name string) template.HTML {
+		"avatar": func(name, workspace, source string) template.HTML {
 			if name == "" {
 				name = "?"
 			}
+			// For multiclaude sources (robots), use Robohash
+			if source == "multiclaude" {
+				// Use workspace (channel) and name (agent) for unique robot avatars
+				robohashText := fmt.Sprintf("%s-%s", workspace, name)
+				// URL encode the text for safety
+				img := fmt.Sprintf(`<img class="avatar" width="24" height="24" src="https://robohash.org/%s?size=48x48" alt="%s avatar">`,
+					template.URLQueryEscaper(robohashText), template.HTMLEscapeString(name))
+				return template.HTML(img)
+			}
+			// For non-robots (humans), use the SVG avatar with initials
 			// Get first character for initial
 			initial := strings.ToUpper(string([]rune(name)[0]))
 			// Get color from palette

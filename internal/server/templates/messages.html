@@ -4,7 +4,7 @@
     <div class="message {{senderColorClass .From}}{{if .IsGroupStart}} group-start{{end}}{{if .IsGroupEnd}} group-end{{end}}{{if not .IsGroupStart}} continuation{{end}}" data-source="{{.Source}}" data-workspace="{{.Workspace}}" data-from="{{.From}}" data-to="{{.To}}" data-body="{{.Body}}" data-timestamp="{{.Timestamp.UnixMilli}}">
         {{if .IsGroupStart}}
         <div class="message-header">
-            {{avatar .From}}
+            {{avatar .From .Workspace .Source}}
             <span class="message-from">{{.From}}</span>
             {{if .To}}<span class="message-arrow">→</span><span class="message-to">{{.To}}</span>{{end}}
             <span class="message-time" title="{{.Timestamp}}">{{formatTime .Timestamp}}</span>
