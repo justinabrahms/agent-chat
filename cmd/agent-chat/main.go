@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/justinabrahms/agent-chat/internal/config"
 	"github.com/justinabrahms/agent-chat/internal/message"
 	"github.com/justinabrahms/agent-chat/internal/server"
 )
@@ -20,6 +21,7 @@ func main() {
 		port           int
 		gastownDir     string
 		multiclaudeDir string
+		configPath     string
 	)
 
 	homeDir, _ := os.UserHomeDir()
@@ -29,16 +31,42 @@ func main() {
 	flag.IntVar(&port, "port", 8080, "HTTP server port")
 	flag.StringVar(&gastownDir, "gastown-dir", defaultBeadsDir, "Path to Gas Town .beads directory")
 	flag.StringVar(&multiclaudeDir, "multiclaude-dir", defaultMulticlaudeDir, "Path to multiclaude directory")
+	flag.StringVar(&configPath, "config", "", "Path to config file (default: ~/.config/agent-chat/config.yaml)")
 	flag.Parse()
 
-	// Override with environment variables if set
-	if v := os.Getenv("PORT"); v != "" {
+	// Track which flags were explicitly set
+	explicitFlags := make(map[string]bool)
+	flag.Visit(func(f *flag.Flag) {
+		explicitFlags[f.Name] = true
+	})
+
+	// Load config file
+	// If --config was specified, it's an error if the file doesn't exist
+	cfg, err := config.Load(configPath, explicitFlags["config"])
+	if err != nil {
+		log.Fatalf("Error loading config: %v", err)
+	}
+
+	// Apply precedence: flags > env vars > config file > defaults
+	// Config file values (only if flag wasn't explicitly set)
+	if !explicitFlags["port"] && cfg.Port != 0 {
+		port = cfg.Port
+	}
+	if !explicitFlags["gastown-dir"] && cfg.GastownDir != "" {
+		gastownDir = cfg.GastownDir
+	}
+	if !explicitFlags["multiclaude-dir"] && cfg.MulticlaudeDir != "" {
+		multiclaudeDir = cfg.MulticlaudeDir
+	}
+
+	// Environment variables override config file (but not flags)
+	if v := os.Getenv("PORT"); v != "" && !explicitFlags["port"] {
 		_, _ = fmt.Sscanf(v, "%d", &port)
 	}
-	if v := os.Getenv("GASTOWN_DIR"); v != "" {
+	if v := os.Getenv("GASTOWN_DIR"); v != "" && !explicitFlags["gastown-dir"] {
 		gastownDir = v
 	}
-	if v := os.Getenv("MULTICLAUDE_DIR"); v != "" {
+	if v := os.Getenv("MULTICLAUDE_DIR"); v != "" && !explicitFlags["multiclaude-dir"] {
 		multiclaudeDir = v
 	}
 
