@@ -17,7 +17,8 @@ LINE_THRESHOLD=50
 FILE_THRESHOLD=3
 
 # Get the base branch (default to origin/main for PRs)
-BASE_BRANCH="${GITHUB_BASE_REF:-origin/main}"
+# GITHUB_BASE_REF contains just the branch name (e.g., "main"), so we prefix with "origin/"
+BASE_BRANCH="origin/${GITHUB_BASE_REF:-main}"
 
 echo "Checking for spec requirement against ${BASE_BRANCH}..."
 
