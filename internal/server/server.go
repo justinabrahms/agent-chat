@@ -29,15 +29,15 @@ var (
 // Avatar colors palette - works well in both dark and light themes.
 // Each color is an HSL hue value (0-360).
 var avatarHues = []int{
-	0,    // red
-	25,   // orange
-	45,   // gold
-	120,  // green
-	180,  // cyan
-	210,  // blue
-	260,  // purple
-	300,  // magenta
-	330,  // pink
+	0,   // red
+	25,  // orange
+	45,  // gold
+	120, // green
+	180, // cyan
+	210, // blue
+	260, // purple
+	300, // magenta
+	330, // pink
 }
 
 // stringHash returns a consistent hash value for a string.
