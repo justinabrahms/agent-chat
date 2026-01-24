@@ -1,9 +1,9 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"embed"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -302,8 +302,15 @@ func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
 			if !ok {
 				return
 			}
-			data, _ := json.Marshal(msg)
-			fmt.Fprintf(w, "event: message\ndata: %s\n\n", data)
+			// Render the message as HTML using the template
+			var buf bytes.Buffer
+			if err := s.templates.ExecuteTemplate(&buf, "message.html", msg); err != nil {
+				log.Printf("SSE template error: %v", err)
+				continue
+			}
+			// Send HTML as SSE data (newlines in data need to be prefixed with "data: ")
+			html := strings.ReplaceAll(buf.String(), "\n", "\ndata: ")
+			fmt.Fprintf(w, "event: message\ndata: %s\n\n", html)
 			flusher.Flush()
 		case <-ticker.C:
 			fmt.Fprintf(w, ": keepalive\n\n")

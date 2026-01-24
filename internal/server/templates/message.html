@@ -1,0 +1,11 @@
+{{define "message.html"}}
+<div class="message group-start group-end" data-source="{{.Source}}" data-workspace="{{.Workspace}}" data-timestamp="{{.Timestamp.UnixMilli}}">
+    <div class="message-header">
+        <span class="message-source">{{sourceIcon .Source}}</span>
+        <span class="message-from">{{.From}}</span>
+        {{if .To}}<span class="message-arrow">→</span><span class="message-to">{{.To}}</span>{{end}}
+        <span class="message-time" title="{{.Timestamp}}">{{formatTime .Timestamp}}</span>
+    </div>
+    <div class="message-body">{{markdown .Body}}</div>
+</div>
+{{end}}

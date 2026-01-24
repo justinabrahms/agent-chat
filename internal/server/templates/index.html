@@ -193,36 +193,43 @@
             document.querySelector('.status-text').textContent = 'Disconnected';
         });
 
-        // Handle SSE messages for unread indicators
-        document.body.addEventListener('htmx:sseMessage', function(e) {
-            if (e.detail.type === 'message') {
-                try {
-                    var msg = JSON.parse(e.detail.data);
-                    var workspace = msg.workspace;
-                    var msgTime = new Date(msg.timestamp).getTime();
+        // Handle new messages for unread indicators (via MutationObserver)
+        function handleNewMessage(msgEl) {
+            const workspace = msgEl.dataset.workspace;
+            const msgTime = parseInt(msgEl.dataset.timestamp, 10) || 0;
 
-                    // Update the data-latest-time for this workspace
-                    var wsEl = document.querySelector('.workspace-item[data-workspace="' + workspace + '"]');
-                    if (wsEl) {
-                        var currentLatest = parseInt(wsEl.dataset.latestTime, 10) || 0;
-                        if (msgTime > currentLatest) {
-                            wsEl.dataset.latestTime = msgTime;
-                        }
+            if (!workspace) return;
 
-                        // If not the active workspace, show unread
-                        if (!wsEl.classList.contains('active')) {
-                            wsEl.classList.add('has-unread');
-                        }
-                    }
-                } catch (err) {
-                    // Ignore parse errors
+            // Update the data-latest-time for this workspace
+            const wsEl = document.querySelector(`.workspace-item[data-workspace="${workspace}"]`);
+            if (wsEl) {
+                const currentLatest = parseInt(wsEl.dataset.latestTime, 10) || 0;
+                if (msgTime > currentLatest) {
+                    wsEl.dataset.latestTime = msgTime;
+                }
+
+                // If not the active workspace, show unread
+                if (!wsEl.classList.contains('active')) {
+                    wsEl.classList.add('has-unread');
                 }
             }
-        });
+        }
 
-        // Auto-scroll to bottom on new messages
-        var panel = document.getElementById('message-panel');
-        var observer = new MutationObserver(function() {
+        // Auto-scroll to bottom on new messages and track unread
+        const panel = document.getElementById('message-panel');
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                mutation.addedNodes.forEach(function(node) {
+                    // Check if the added node is a message element
+                    if (node.nodeType === 1 && node.classList && node.classList.contains('message')) {
+                        handleNewMessage(node);
+                    }
+                    // Also check children (e.g., if container was added)
+                    if (node.querySelectorAll) {
+                        node.querySelectorAll('.message').forEach(handleNewMessage);
+                    }
+                });
+            });
             panel.scrollTop = panel.scrollHeight;
         });
         observer.observe(panel, { childList: true, subtree: true });

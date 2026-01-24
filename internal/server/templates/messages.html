@@ -1,7 +1,7 @@
 {{define "messages.html"}}
 <div class="messages-container">
     {{range .Messages}}
-    <div class="message{{if .IsGroupStart}} group-start{{end}}{{if .IsGroupEnd}} group-end{{end}}{{if not .IsGroupStart}} continuation{{end}}" data-source="{{.Source}}" data-workspace="{{.Workspace}}" data-from="{{.From}}" data-to="{{.To}}" data-body="{{.Body}}">
+    <div class="message{{if .IsGroupStart}} group-start{{end}}{{if .IsGroupEnd}} group-end{{end}}{{if not .IsGroupStart}} continuation{{end}}" data-source="{{.Source}}" data-workspace="{{.Workspace}}" data-from="{{.From}}" data-to="{{.To}}" data-body="{{.Body}}" data-timestamp="{{.Timestamp.UnixMilli}}">
         {{if .IsGroupStart}}
         <div class="message-header">
             <span class="message-source">{{sourceIcon .Source}}</span>
