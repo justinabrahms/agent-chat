@@ -29,6 +29,36 @@ type WorkspaceInfo struct {
 	MessageCount  int
 }
 
+// GroupedMessage wraps a message with grouping metadata for the UI.
+type GroupedMessage struct {
+	message.Message
+	IsGroupStart bool // True if this is the first message in a group from this sender
+	IsGroupEnd   bool // True if this is the last message in a group from this sender
+}
+
+// groupMessages adds grouping metadata to a slice of chronologically sorted messages.
+func groupMessages(msgs []message.Message) []GroupedMessage {
+	if len(msgs) == 0 {
+		return nil
+	}
+
+	grouped := make([]GroupedMessage, len(msgs))
+	for i, msg := range msgs {
+		grouped[i] = GroupedMessage{Message: msg}
+
+		// Check if this is the start of a new group
+		if i == 0 || msgs[i-1].From != msg.From {
+			grouped[i].IsGroupStart = true
+		}
+
+		// Check if this is the end of a group
+		if i == len(msgs)-1 || msgs[i+1].From != msg.From {
+			grouped[i].IsGroupEnd = true
+		}
+	}
+	return grouped
+}
+
 // Server handles HTTP requests for the chat UI.
 type Server struct {
 	aggregator *message.Aggregator
@@ -191,11 +221,12 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	sort.Slice(messages, func(i, j int) bool {
 		return messages[i].Timestamp.Before(messages[j].Timestamp)
 	})
+	groupedMsgs := groupMessages(messages)
 
 	data := map[string]any{
 		"Workspaces":        workspaceInfos,
 		"SelectedWorkspace": selectedWS,
-		"Messages":          messages,
+		"Messages":          groupedMsgs,
 		"Sources":           s.aggregator.Sources(),
 	}
 
@@ -227,9 +258,10 @@ func (s *Server) handleMessages(w http.ResponseWriter, r *http.Request) {
 	sort.Slice(messages, func(i, j int) bool {
 		return messages[i].Timestamp.Before(messages[j].Timestamp)
 	})
+	groupedMsgs := groupMessages(messages)
 
 	data := map[string]any{
-		"Messages":  messages,
+		"Messages":  groupedMsgs,
 		"Workspace": workspace,
 	}
 
