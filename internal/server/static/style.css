@@ -459,10 +459,11 @@ html, body {
     font-size: 13px;
 }
 
-/* Avatar SVG styling */
+/* Avatar styling - works for both SVG and img (Robohash) */
 .avatar {
     flex-shrink: 0;
     border-radius: 50%;
+    object-fit: cover; /* For img avatars */
 }
 
 /* Sender color classes - subtle background tints for message identification */
