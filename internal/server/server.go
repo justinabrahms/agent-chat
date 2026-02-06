@@ -209,6 +209,8 @@ func New(agg *message.Aggregator, repoURLs map[string]string) (*Server, error) {
 				return "⛽"
 			case "multiclaude":
 				return "🤖"
+			case "claude-teams":
+				return "👥"
 			default:
 				return "📨"
 			}
@@ -217,8 +219,8 @@ func New(agg *message.Aggregator, repoURLs map[string]string) (*Server, error) {
 			if name == "" {
 				name = "?"
 			}
-			// For multiclaude sources (robots), use Robohash
-			if source == "multiclaude" {
+			// For AI agent sources (robots), use Robohash
+			if source == "multiclaude" || source == "claude-teams" {
 				// Use workspace (channel) and name (agent) for unique robot avatars
 				robohashText := fmt.Sprintf("%s-%s", workspace, name)
 				// URL encode the text for safety
@@ -246,6 +248,12 @@ func New(agg *message.Aggregator, repoURLs map[string]string) (*Server, error) {
 		"markdown": func(body, workspace string) template.HTML {
 			repoURL := srv.RepoURLs[workspace]
 			return template.HTML(renderMarkdown(body, repoURL))
+		},
+		"isStatusMessage": func(body string) bool {
+			return strings.HasPrefix(body, "[status] ")
+		},
+		"stripStatusPrefix": func(body string) string {
+			return strings.TrimPrefix(body, "[status] ")
 		},
 	}
 

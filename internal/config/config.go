@@ -14,6 +14,7 @@ type Config struct {
 	Port           int    `yaml:"port"`
 	GastownDir     string `yaml:"gastown-dir"`
 	MulticlaudeDir string `yaml:"multiclaude-dir"`
+	ClaudeTeamsDir string `yaml:"claude-teams-dir"`
 }
 
 // DefaultPath returns the default config file path.

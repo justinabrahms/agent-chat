@@ -52,6 +52,7 @@ func main() {
 		port           int
 		gastownDir     string
 		multiclaudeDir string
+		claudeTeamsDir string
 		configPath     string
 		showVersion    bool
 	)
@@ -59,10 +60,12 @@ func main() {
 	homeDir, _ := os.UserHomeDir()
 	defaultBeadsDir := filepath.Join(homeDir, ".beads")
 	defaultMulticlaudeDir := filepath.Join(homeDir, ".multiclaude")
+	defaultClaudeTeamsDir := filepath.Join(homeDir, ".claude", "teams")
 
 	flag.IntVar(&port, "port", 8080, "HTTP server port")
 	flag.StringVar(&gastownDir, "gastown-dir", defaultBeadsDir, "Path to Gas Town .beads directory")
 	flag.StringVar(&multiclaudeDir, "multiclaude-dir", defaultMulticlaudeDir, "Path to multiclaude directory")
+	flag.StringVar(&claudeTeamsDir, "claude-teams-dir", defaultClaudeTeamsDir, "Path to Claude Teams directory")
 	flag.StringVar(&configPath, "config", "", "Path to config file (default: ~/.config/agent-chat/config.yaml)")
 	flag.BoolVar(&showVersion, "version", false, "Print version information and exit")
 	flag.Parse()
@@ -96,6 +99,9 @@ func main() {
 	if !explicitFlags["multiclaude-dir"] && cfg.MulticlaudeDir != "" {
 		multiclaudeDir = cfg.MulticlaudeDir
 	}
+	if !explicitFlags["claude-teams-dir"] && cfg.ClaudeTeamsDir != "" {
+		claudeTeamsDir = cfg.ClaudeTeamsDir
+	}
 
 	// Environment variables override config file (but not flags)
 	if v := os.Getenv("PORT"); v != "" && !explicitFlags["port"] {
@@ -106,6 +112,9 @@ func main() {
 	}
 	if v := os.Getenv("MULTICLAUDE_DIR"); v != "" && !explicitFlags["multiclaude-dir"] {
 		multiclaudeDir = v
+	}
+	if v := os.Getenv("CLAUDE_TEAMS_DIR"); v != "" && !explicitFlags["claude-teams-dir"] {
+		claudeTeamsDir = v
 	}
 
 	// Collect available sources
@@ -125,6 +134,14 @@ func main() {
 		sources = append(sources, ms)
 	} else {
 		log.Printf("Multiclaude source not available: %v", err)
+	}
+
+	// Try Claude Teams source
+	if ts, err := message.NewClaudeTeamsSource(claudeTeamsDir); err == nil {
+		log.Printf("Loaded Claude Teams source from %s", claudeTeamsDir)
+		sources = append(sources, ts)
+	} else {
+		log.Printf("Claude Teams source not available: %v", err)
 	}
 
 	if len(sources) == 0 {

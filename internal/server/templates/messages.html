@@ -1,7 +1,10 @@
 {{define "messages.html"}}
 <div class="messages-container">
     {{range .Messages}}
-    <div class="message {{senderColorClass .From}}{{if .IsGroupStart}} group-start{{end}}{{if .IsGroupEnd}} group-end{{end}}{{if not .IsGroupStart}} continuation{{end}}" data-source="{{.Source}}" data-workspace="{{.Workspace}}" data-from="{{.From}}" data-to="{{.To}}" data-body="{{.Body}}" data-timestamp="{{.Timestamp.UnixMilli}}">
+    <div class="message {{senderColorClass .From}}{{if .IsGroupStart}} group-start{{end}}{{if .IsGroupEnd}} group-end{{end}}{{if not .IsGroupStart}} continuation{{end}}{{if isStatusMessage .Body}} status-message{{end}}" data-source="{{.Source}}" data-workspace="{{.Workspace}}" data-from="{{.From}}" data-to="{{.To}}" data-body="{{.Body}}" data-timestamp="{{.Timestamp.UnixMilli}}">
+        {{if isStatusMessage .Body}}
+        <div class="message-body">{{stripStatusPrefix .Body}}</div>
+        {{else}}
         {{if .IsGroupStart}}
         <div class="message-header">
             {{avatar .From .Workspace .Source}}
@@ -13,6 +16,7 @@
         <div class="message-time-hover" title="{{.Timestamp}}">{{formatTime .Timestamp}}</div>
         {{end}}
         <div class="message-body">{{markdown .Body .Workspace}}</div>
+        {{end}}
     </div>
     {{else}}
     <div class="no-messages">

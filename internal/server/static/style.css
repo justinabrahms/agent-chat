@@ -632,6 +632,25 @@ html, body {
     animation: slideIn 0.2s ease-out;
 }
 
+/* Status messages (idle notifications, system status) */
+.message.status-message {
+    opacity: 0.5;
+    padding: 4px 16px;
+    background: transparent;
+}
+
+.message.status-message:hover {
+    opacity: 0.7;
+    background: transparent;
+}
+
+.message.status-message .message-body {
+    font-style: italic;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
 /* Code blocks with syntax highlighting */
 .message-body pre {
     background: var(--bg-tertiary);

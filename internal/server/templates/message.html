@@ -1,5 +1,8 @@
 {{define "message.html"}}
-<div class="message group-start group-end {{senderColorClass .From}}" data-source="{{.Source}}" data-workspace="{{.Workspace}}" data-timestamp="{{.Timestamp.UnixMilli}}">
+<div class="message group-start group-end {{senderColorClass .From}}{{if isStatusMessage .Body}} status-message{{end}}" data-source="{{.Source}}" data-workspace="{{.Workspace}}" data-timestamp="{{.Timestamp.UnixMilli}}">
+    {{if isStatusMessage .Body}}
+    <div class="message-body">{{stripStatusPrefix .Body}}</div>
+    {{else}}
     <div class="message-header">
         {{avatar .From .Workspace .Source}}
         <span class="message-from">{{.From}}</span>
@@ -7,5 +10,6 @@
         <span class="message-time" title="{{.Timestamp}}">{{formatTime .Timestamp}}</span>
     </div>
     <div class="message-body">{{markdown .Body .Workspace}}</div>
+    {{end}}
 </div>
 {{end}}
