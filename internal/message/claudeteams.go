@@ -68,6 +68,11 @@ func msgID(teamName, from string, timestamp time.Time) string {
 	return fmt.Sprintf("%x", h[:8])
 }
 
+// structuredMessage is a generic envelope for JSON messages with a "type" field.
+type structuredMessage struct {
+	Type string `json:"type"`
+}
+
 // parseIdleNotification checks if the text is an idle notification and returns
 // a human-readable body with [status] prefix, or empty string if not idle.
 func parseIdleNotification(text string) string {
@@ -83,6 +88,221 @@ func parseIdleNotification(text string) string {
 		reason = "idle"
 	}
 	return fmt.Sprintf("[status] %s is now %s", notif.From, reason)
+}
+
+// formatStructuredMessage attempts to parse a JSON message body and render it
+// as human-readable text. Returns empty string if the text is not a recognized
+// structured message.
+func formatStructuredMessage(text string) string {
+	text = strings.TrimSpace(text)
+	if !strings.HasPrefix(text, "{") {
+		return ""
+	}
+
+	var envelope structuredMessage
+	if err := json.Unmarshal([]byte(text), &envelope); err != nil {
+		return ""
+	}
+	if envelope.Type == "" {
+		return ""
+	}
+
+	// Parse into a generic map for field access
+	var fields map[string]any
+	if err := json.Unmarshal([]byte(text), &fields); err != nil {
+		return ""
+	}
+
+	switch envelope.Type {
+	case "idle_notification":
+		return "" // Handled separately by parseIdleNotification
+
+	case "shutdown_request":
+		return formatShutdownRequest(fields)
+
+	case "task_assignment":
+		return formatTaskAssignment(fields)
+
+	case "task_complete", "task_completed":
+		return formatTaskComplete(fields)
+
+	case "status_update":
+		return formatStatusUpdate(fields)
+
+	default:
+		return formatGenericStructured(envelope.Type, fields)
+	}
+}
+
+func getStr(fields map[string]any, key string) string {
+	if v, ok := fields[key]; ok {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
+func formatShutdownRequest(fields map[string]any) string {
+	from := getStr(fields, "from")
+	reason := getStr(fields, "reason")
+	requestID := getStr(fields, "requestId")
+
+	var b strings.Builder
+	b.WriteString("**Shutdown Request**")
+	if from != "" {
+		b.WriteString(" from **")
+		b.WriteString(from)
+		b.WriteString("**")
+	}
+	if reason != "" {
+		b.WriteString("\n")
+		b.WriteString(reason)
+	}
+	if requestID != "" {
+		b.WriteString("\n_Request: ")
+		b.WriteString(requestID)
+		b.WriteString("_")
+	}
+	return b.String()
+}
+
+func formatTaskAssignment(fields map[string]any) string {
+	taskID := getStr(fields, "taskId")
+	subject := getStr(fields, "subject")
+	description := getStr(fields, "description")
+	assignedBy := getStr(fields, "assignedBy")
+
+	var b strings.Builder
+	b.WriteString("**Task Assignment")
+	if taskID != "" {
+		b.WriteString(" #")
+		b.WriteString(taskID)
+	}
+	b.WriteString("**")
+	if assignedBy != "" {
+		b.WriteString(" from **")
+		b.WriteString(assignedBy)
+		b.WriteString("**")
+	}
+	if subject != "" {
+		b.WriteString("\n**")
+		b.WriteString(subject)
+		b.WriteString("**")
+	}
+	if description != "" {
+		b.WriteString("\n")
+		b.WriteString(description)
+	}
+	return b.String()
+}
+
+func formatTaskComplete(fields map[string]any) string {
+	taskID := getStr(fields, "taskId")
+	subject := getStr(fields, "subject")
+	summary := getStr(fields, "summary")
+	from := getStr(fields, "from")
+
+	var b strings.Builder
+	b.WriteString("**Task Complete")
+	if taskID != "" {
+		b.WriteString(" #")
+		b.WriteString(taskID)
+	}
+	b.WriteString("**")
+	if from != "" {
+		b.WriteString(" by **")
+		b.WriteString(from)
+		b.WriteString("**")
+	}
+	if subject != "" {
+		b.WriteString("\n**")
+		b.WriteString(subject)
+		b.WriteString("**")
+	}
+	if summary != "" {
+		b.WriteString("\n")
+		b.WriteString(summary)
+	}
+	return b.String()
+}
+
+func formatStatusUpdate(fields map[string]any) string {
+	from := getStr(fields, "from")
+	status := getStr(fields, "status")
+	msg := getStr(fields, "message")
+
+	var b strings.Builder
+	b.WriteString("**Status Update**")
+	if from != "" {
+		b.WriteString(" from **")
+		b.WriteString(from)
+		b.WriteString("**")
+	}
+	if status != "" {
+		b.WriteString(": ")
+		b.WriteString(status)
+	}
+	if msg != "" {
+		b.WriteString("\n")
+		b.WriteString(msg)
+	}
+	return b.String()
+}
+
+func formatGenericStructured(msgType string, fields map[string]any) string {
+	// Format the type as a title: "some_type" -> "Some Type"
+	words := strings.Split(msgType, "_")
+	for i, w := range words {
+		if len(w) > 0 {
+			words[i] = strings.ToUpper(w[:1]) + w[1:]
+		}
+	}
+	title := strings.Join(words, " ")
+
+	var b strings.Builder
+	b.WriteString("**")
+	b.WriteString(title)
+	b.WriteString("**")
+
+	if from := getStr(fields, "from"); from != "" {
+		b.WriteString(" from **")
+		b.WriteString(from)
+		b.WriteString("**")
+	}
+
+	// Show remaining interesting fields
+	skip := map[string]bool{"type": true, "from": true, "timestamp": true}
+	for key, val := range fields {
+		if skip[key] {
+			continue
+		}
+		if s, ok := val.(string); ok && s != "" {
+			labelWords := strings.Split(key, "_")
+			for i, w := range labelWords {
+				if len(w) > 0 {
+					labelWords[i] = strings.ToUpper(w[:1]) + w[1:]
+				}
+			}
+			label := strings.Join(labelWords, " ")
+			b.WriteString("\n**")
+			b.WriteString(label)
+			b.WriteString(":** ")
+			b.WriteString(s)
+		}
+	}
+	return b.String()
+}
+
+// formatMessageBody applies all message body transformations.
+func formatMessageBody(text string) string {
+	if statusBody := parseIdleNotification(text); statusBody != "" {
+		return statusBody
+	}
+	if formatted := formatStructuredMessage(text); formatted != "" {
+		return formatted
+	}
+	return text
 }
 
 func (c *ClaudeTeamsSource) List(workspace string) ([]Message, error) {
@@ -136,17 +356,12 @@ func (c *ClaudeTeamsSource) List(workspace string) ([]Message, error) {
 				c.seenMsgKeys[key] = true
 				c.mu.Unlock()
 
-				body := m.Text
-				if statusBody := parseIdleNotification(m.Text); statusBody != "" {
-					body = statusBody
-				}
-
 				messages = append(messages, Message{
 					ID:        msgID(teamName, m.From, m.Timestamp),
 					Workspace: ws,
 					From:      m.From,
 					To:        recipient,
-					Body:      body,
+					Body:      formatMessageBody(m.Text),
 					Timestamp: m.Timestamp,
 					Source:    "claude-teams",
 				})
@@ -222,18 +437,13 @@ func (c *ClaudeTeamsSource) Watch(ctx context.Context) (<-chan Message, error) {
 			c.workspaces[ws] = true
 			c.mu.Unlock()
 
-			body := m.Text
-			if statusBody := parseIdleNotification(m.Text); statusBody != "" {
-				body = statusBody
-			}
-
 			select {
 			case out <- Message{
 				ID:        msgID(teamName, m.From, m.Timestamp),
 				Workspace: ws,
 				From:      m.From,
 				To:        recipient,
-				Body:      body,
+				Body:      formatMessageBody(m.Text),
 				Timestamp: m.Timestamp,
 				Source:    "claude-teams",
 			}:

@@ -112,6 +112,9 @@
                      hx-swap="beforeend">
                     {{template "messages.html" .}}
                 </div>
+                <button class="new-messages-banner" id="new-messages-banner" style="display:none;">
+                    New messages below
+                </button>
             </main>
         </div>
     </div>
@@ -256,27 +259,56 @@
             }
         }
 
-        // Auto-scroll to bottom on new messages and track unread
+        // Smart scroll: only auto-scroll if user is near the bottom
         const panel = document.getElementById('message-panel');
+        const banner = document.getElementById('new-messages-banner');
+        var isNearBottom = true;
+        var SCROLL_THRESHOLD = 150; // px from bottom to count as "near bottom"
+
+        function checkNearBottom() {
+            isNearBottom = (panel.scrollHeight - panel.scrollTop - panel.clientHeight) < SCROLL_THRESHOLD;
+        }
+
+        panel.addEventListener('scroll', function() {
+            checkNearBottom();
+            if (isNearBottom) {
+                banner.style.display = 'none';
+            }
+        });
+
+        banner.addEventListener('click', function() {
+            panel.scrollTo({ top: panel.scrollHeight, behavior: 'smooth' });
+            banner.style.display = 'none';
+        });
+
         const observer = new MutationObserver(function(mutations) {
+            var hasNewMessage = false;
             mutations.forEach(function(mutation) {
                 mutation.addedNodes.forEach(function(node) {
-                    // Check if the added node is a message element
                     if (node.nodeType === 1 && node.classList && node.classList.contains('message')) {
                         handleNewMessage(node);
+                        hasNewMessage = true;
                     }
-                    // Also check children (e.g., if container was added)
                     if (node.querySelectorAll) {
-                        node.querySelectorAll('.message').forEach(handleNewMessage);
+                        var msgs = node.querySelectorAll('.message');
+                        msgs.forEach(handleNewMessage);
+                        if (msgs.length > 0) hasNewMessage = true;
                     }
                 });
             });
-            panel.scrollTop = panel.scrollHeight;
+            if (hasNewMessage) {
+                if (isNearBottom) {
+                    panel.scrollTop = panel.scrollHeight;
+                } else {
+                    banner.style.display = '';
+                }
+            }
         });
         observer.observe(panel, { childList: true, subtree: true });
 
-        // Initial scroll
+        // Initial scroll to bottom
         panel.scrollTop = panel.scrollHeight;
+        checkNearBottom();
 
         // Handle workspace clicks - update active state and mark as read
         document.querySelectorAll('.workspace-item').forEach(function(el) {
