@@ -6,41 +6,69 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
-	_ "modernc.org/sqlite"
+	_ "github.com/go-sql-driver/mysql"
+	"gopkg.in/yaml.v3"
 )
 
-// GasTownSource reads messages from the Gas Town beads SQLite database.
+// GasTownSource reads messages from the Gas Town Dolt database.
 type GasTownSource struct {
-	beadsDir   string
-	dbPath     string
+	dsn        string
 	mu         sync.RWMutex
 	lastSeenID string
 	lastSeenAt time.Time
 	workspaces map[string]bool
 }
 
+type gastownConfig struct {
+	IssuePrefix string `yaml:"issue-prefix"`
+}
+
 // NewGasTownSource creates a new Gas Town message source.
-// beadsDir should be the path to the .beads directory (e.g., ~/.beads or the redirect target).
+// beadsDir should be the path to the .beads directory (e.g., ~/gt/.beads).
+// It reads the dolt-server.port and config.yaml from that directory.
 func NewGasTownSource(beadsDir string) (*GasTownSource, error) {
-	// Check for redirect
-	redirectPath := filepath.Join(beadsDir, "redirect")
-	if data, err := os.ReadFile(redirectPath); err == nil {
-		beadsDir = strings.TrimSpace(string(data))
+	portFile := filepath.Join(beadsDir, "dolt-server.port")
+	portData, err := os.ReadFile(portFile)
+	if err != nil {
+		return nil, fmt.Errorf("dolt-server.port not found in %s: %w", beadsDir, err)
+	}
+	port, err := strconv.Atoi(strings.TrimSpace(string(portData)))
+	if err != nil {
+		return nil, fmt.Errorf("invalid port in dolt-server.port: %w", err)
 	}
 
-	dbPath := filepath.Join(beadsDir, "beads.db")
-	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("beads.db not found at %s", dbPath)
+	configFile := filepath.Join(beadsDir, "config.yaml")
+	configData, err := os.ReadFile(configFile)
+	if err != nil {
+		return nil, fmt.Errorf("config.yaml not found in %s: %w", beadsDir, err)
+	}
+	var cfg gastownConfig
+	if err := yaml.Unmarshal(configData, &cfg); err != nil {
+		return nil, fmt.Errorf("invalid config.yaml in %s: %w", beadsDir, err)
+	}
+	if cfg.IssuePrefix == "" {
+		return nil, fmt.Errorf("issue-prefix not set in %s/config.yaml", beadsDir)
+	}
+
+	dsn := fmt.Sprintf("root@tcp(127.0.0.1:%d)/%s?parseTime=true", port, cfg.IssuePrefix)
+
+	// Verify the connection works
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open Dolt connection: %w", err)
+	}
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("cannot connect to Dolt server at port %d: %w", port, err)
 	}
 
 	return &GasTownSource{
-		beadsDir:   beadsDir,
-		dbPath:     dbPath,
+		dsn:        dsn,
 		workspaces: make(map[string]bool),
 	}, nil
 }
@@ -50,7 +78,7 @@ func (g *GasTownSource) Name() string {
 }
 
 func (g *GasTownSource) openDB() (*sql.DB, error) {
-	return sql.Open("sqlite", g.dbPath+"?mode=ro")
+	return sql.Open("mysql", g.dsn)
 }
 
 // parseWorkspace extracts the workspace (rig) from sender or assignee.
@@ -73,11 +101,17 @@ func (g *GasTownSource) List(workspace string) ([]Message, error) {
 	}
 	defer db.Close()
 
+	// Mail messages are stored in both wisps (ephemeral, default) and issues (permanent).
+	// The sender is in created_by (not sender), and there is no special issue_type='message'.
+	// We filter for items that have both a sender and a recipient, excluding self-assignments.
 	query := `
-		SELECT id, title, sender, assignee, description, created_at
+		SELECT id, title, created_by, assignee, description, created_at
+		FROM wisps
+		WHERE created_by != '' AND assignee != '' AND closed_at IS NULL
+		UNION ALL
+		SELECT id, title, created_by, assignee, description, created_at
 		FROM issues
-		WHERE issue_type = 'message'
-		AND deleted_at IS NULL
+		WHERE created_by != '' AND assignee != '' AND created_by != assignee AND closed_at IS NULL
 		ORDER BY created_at ASC
 	`
 
@@ -92,14 +126,12 @@ func (g *GasTownSource) List(workspace string) ([]Message, error) {
 		var (
 			id, title, description string
 			sender, assignee       sql.NullString
-			createdAt              string
+			createdAt              time.Time
 		)
 
 		if err := rows.Scan(&id, &title, &sender, &assignee, &description, &createdAt); err != nil {
 			return nil, err
 		}
-
-		ts, _ := time.Parse(time.RFC3339Nano, createdAt)
 
 		from := sender.String
 		to := assignee.String
@@ -122,7 +154,7 @@ func (g *GasTownSource) List(workspace string) ([]Message, error) {
 			From:      from,
 			To:        to,
 			Body:      fmt.Sprintf("**%s**\n\n%s", title, description),
-			Timestamp: ts,
+			Timestamp: createdAt,
 			Source:    "gastown",
 		})
 	}
@@ -131,7 +163,6 @@ func (g *GasTownSource) List(workspace string) ([]Message, error) {
 }
 
 func (g *GasTownSource) Workspaces() ([]string, error) {
-	// First populate workspaces by listing messages
 	if _, err := g.List(""); err != nil {
 		return nil, err
 	}
@@ -149,23 +180,6 @@ func (g *GasTownSource) Workspaces() ([]string, error) {
 func (g *GasTownSource) Watch(ctx context.Context) (<-chan Message, error) {
 	out := make(chan Message, 100)
 
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return nil, err
-	}
-
-	// Watch the db file for changes
-	if err := watcher.Add(g.dbPath); err != nil {
-		watcher.Close()
-		return nil, err
-	}
-
-	// Also watch WAL file if it exists
-	walPath := g.dbPath + "-wal"
-	if _, err := os.Stat(walPath); err == nil {
-		_ = watcher.Add(walPath) // Best effort - WAL may not always exist
-	}
-
 	// Initialize last seen
 	msgs, err := g.List("")
 	if err == nil && len(msgs) > 0 {
@@ -176,53 +190,39 @@ func (g *GasTownSource) Watch(ctx context.Context) (<-chan Message, error) {
 	}
 
 	go func() {
-		defer watcher.Close()
 		defer close(out)
 
-		ticker := time.NewTicker(30 * time.Second)
+		ticker := time.NewTicker(10 * time.Second)
 		defer ticker.Stop()
-
-		checkForNew := func() {
-			msgs, err := g.List("")
-			if err != nil {
-				return
-			}
-
-			g.mu.RLock()
-			lastAt := g.lastSeenAt
-			lastID := g.lastSeenID
-			g.mu.RUnlock()
-
-			for _, msg := range msgs {
-				if msg.Timestamp.After(lastAt) || (msg.Timestamp.Equal(lastAt) && msg.ID != lastID) {
-					select {
-					case out <- msg:
-					case <-ctx.Done():
-						return
-					}
-					g.mu.Lock()
-					g.lastSeenAt = msg.Timestamp
-					g.lastSeenID = msg.ID
-					g.mu.Unlock()
-				}
-			}
-		}
 
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				if event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
-					checkForNew()
-				}
-			case <-watcher.Errors:
-				// Ignore errors, continue watching
 			case <-ticker.C:
-				checkForNew()
+				msgs, err := g.List("")
+				if err != nil {
+					continue
+				}
+
+				g.mu.RLock()
+				lastAt := g.lastSeenAt
+				lastID := g.lastSeenID
+				g.mu.RUnlock()
+
+				for _, msg := range msgs {
+					if msg.Timestamp.After(lastAt) || (msg.Timestamp.Equal(lastAt) && msg.ID != lastID) {
+						select {
+						case out <- msg:
+						case <-ctx.Done():
+							return
+						}
+						g.mu.Lock()
+						g.lastSeenAt = msg.Timestamp
+						g.lastSeenID = msg.ID
+						g.mu.Unlock()
+					}
+				}
 			}
 		}
 	}()
