@@ -3,7 +3,7 @@ module github.com/justinabrahms/agent-chat
 go 1.24.1
 
 require (
-	github.com/fsnotify/fsnotify v1.9.0
+	github.com/fsnotify/fsnotify v1.10.0
 	github.com/go-sql-driver/mysql v1.9.3
 	gopkg.in/yaml.v3 v3.0.1
 )
